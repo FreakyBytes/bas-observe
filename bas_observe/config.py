@@ -3,8 +3,11 @@ BAS OBserve
 
 config module.
 """
-from attr import attrs, attrib
+import sys
+import logging
 import urllib.parse
+
+from attr import attrs, attrib
 
 
 @attrs
@@ -112,3 +115,24 @@ class Config(object):
             return 'bob_{name}'.format(name=self.project_name)
         else:
             return self._influxdb_db
+
+
+def setup_logging(level=logging.WARN, logfile=None):
+    log_root = logging.getLogger()
+    log_root.setLevel(level)
+    log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+
+    # setting up logging to file
+    if logfile:
+        log_file_handler = logging.FileHandler(logfile)
+        log_file_handler.setFormatter(log_format)
+        log_root.addHandler(log_file_handler)
+
+    # setting up logging to stdout
+    log_stream_handler = logging.StreamHandler(sys.stdout)
+    log_stream_handler.setFormatter(log_format)
+    log_root.addHandler(log_stream_handler)
+
+    # get the logger for this application
+    # log = logging.getLogger('')
+    # log.setLevel(logging.INFO)

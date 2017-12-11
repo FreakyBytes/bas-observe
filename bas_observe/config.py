@@ -14,6 +14,9 @@ import influxdb
 from .queue import declare_amqp_pipeline
 
 
+log = logging.getLogger('CONFIG')
+
+
 @attrs
 class Config(object):
     """Data class holding the main config parameters for BAS Observe
@@ -64,12 +67,15 @@ class Config(object):
 
     def get_amqp_connection(self):
         if not self._amqp_connection:
+            log.debug("Attemp AMQP connection to {url}", url=self.amqp_url)
             self._amqp_connection = pika.BlockingConnection(pika.URLParameters(self.amqp_url))
+            log.info("Connected to AMQP server {url}", url=self.amqp_url)
 
         return self._amqp_connection
 
     def get_amqp_channel(self):
         connection = self.get_amqp_connection()
+        log.info("Get new AMQP channel")
         channel = connection.get_channel()
         # just in case declare the pipelines every time a new channel is opened
         declare_amqp_pipeline(self, channel)
@@ -78,6 +84,7 @@ class Config(object):
     def get_influxdb_connection(self):
         if not self._influxdb_connection:
             param = self.parse_influxdb_url()
+            log.debug("Attemp connection to InfluxDB at {url}", url=self.influxdb_url)
             self._influxdb_connection = influxdb.InfluxDBClient(
                 host=param['host'],
                 port=param['port'],
@@ -88,6 +95,7 @@ class Config(object):
                 use_udp=True if param['scheme'] == 'udp' else False,
                 udp_port=param['port']
             )
+            log.info("Connected to InfluxDB at {url}", url=self.influxdb_url)
 
         return self._influxdb_connection
 
@@ -95,7 +103,8 @@ class Config(object):
 def setup_logging(level=logging.WARN, logfile=None):
     log_root = logging.getLogger()
     log_root.setLevel(level)
-    log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    # log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    log_format = logging.Formatter('{asctime} {name: <12} {levelname: <8} {message}', style='{')
 
     # setting up logging to file
     if logfile:

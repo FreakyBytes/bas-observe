@@ -21,6 +21,14 @@ def simulate():
     pass
 
 
+@cli.command('log', short_help="logs packages and observation results to InfluxDB")
+def log():
+    pass
+
+
+# -----------------------------------------------------------------------------
+
+
 @cli.group(short_help="starts one of the observation modules")
 def observe():
     pass
@@ -38,4 +46,26 @@ def observe_entropy():
 
 @observe.command('lof', short_help="start local outlier factor observation")
 def observe_lof():
+    pass
+
+
+# -----------------------------------------------------------------------------
+
+@cli.group(short_help="trains one of the observation modules from InfluxDB")
+def train():
+    pass
+
+
+@train.command('addr', short_help="gathers an address lookup table of a all address that have communicated")
+def tain_addr():
+    pass
+
+
+@train.command('entropy', short_help="determines base line from entropy calculation")
+def train_entropy():
+    pass
+
+
+@train.command('lof')
+def train_lof():
     pass

@@ -11,6 +11,7 @@ setup(name='BasObserve',
       packages=['bas_observe', ],
       install_requires=[
           'click>=6.0,<7',
+          'attrs>=17.0.0,<18.0.0',
       ],
       dependency_links=[
           'git+https://github.com/FreakyBytes/BaosKnxParser.git',

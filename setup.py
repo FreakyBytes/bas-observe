@@ -12,6 +12,8 @@ setup(name='BasObserve',
       install_requires=[
           'click>=6.0,<7',
           'attrs>=17.0.0,<18.0.0',
+          'influxdb>=4.1,<4.2',
+          'pika>=0.11,<0.12',
       ],
       dependency_links=[
           'git+https://github.com/FreakyBytes/BaosKnxParser.git',

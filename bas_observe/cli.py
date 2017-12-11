@@ -11,7 +11,7 @@ import click
 @click.group()
 def cli():
     """
-    BAS Observe (BOb)
+    Bas OBserve (bob)
     """
     pass
 

@@ -65,7 +65,7 @@ class Config(object):
 
         return result
 
-    def get_amqp_connection(self):
+    def get_amqp_connection(self) -> pika.connection.Connection:
         if not self._amqp_connection:
             log.debug("Attemp AMQP connection to {url}", url=self.amqp_url)
             self._amqp_connection = pika.BlockingConnection(pika.URLParameters(self.amqp_url))
@@ -73,7 +73,7 @@ class Config(object):
 
         return self._amqp_connection
 
-    def get_amqp_channel(self):
+    def get_amqp_channel(self) -> pika.channel.Channel:
         connection = self.get_amqp_connection()
         log.info("Get new AMQP channel")
         channel = connection.get_channel()
@@ -81,7 +81,7 @@ class Config(object):
         declare_amqp_pipeline(self, channel)
         return channel
 
-    def get_influxdb_connection(self):
+    def get_influxdb_connection(self) -> influxdb.InfluxDBClient:
         if not self._influxdb_connection:
             param = self.parse_influxdb_url()
             log.debug("Attemp connection to InfluxDB at {url}", url=self.influxdb_url)
@@ -99,8 +99,43 @@ class Config(object):
 
         return self._influxdb_connection
 
+    @property
+    def name_exchange_agents(self) -> str:
+        return f'bob-{self.project_name}-exchange-agents'
 
-def setup_logging(level=logging.WARN, logfile=None):
+    @property
+    def name_queue_agents(self) -> str:
+        return f'bob-{self.project_name}-queue-agents'
+
+    @property
+    def name_exchange_analyser(self) -> str:
+        return f'bob-{self.project_name}-exchange-analyser'
+
+    def _name_queue_analyser(self, name) -> str:
+        return f'bob-{self.project_name}-queue-analyzer-{name}'
+
+    @property
+    def name_queue_analyser_addr(self) -> str:
+        return self._name_queue_analyser('addr')
+
+    @property
+    def name_queue_analyser_entropy(self) -> str:
+        return self._name_queue_analyser('entropy')
+
+    @property
+    def name_queue_analyser_lof(self) -> str:
+        return self._name_queue_analyser('lof')
+
+    @property
+    def name_exchange_metric(self) -> str:
+        return f'bob-{self.project_name}-exchange-metric'
+
+    @property
+    def name_queue_metric(self) -> str:
+        return f'bob-{self.project_name}-queue-metric'
+
+
+def setup_logging(level=logging.WARN, logfile=None) -> None:
     log_root = logging.getLogger()
     log_root.setLevel(level)
     # log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')

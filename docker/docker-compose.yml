@@ -1,0 +1,25 @@
+version: '3.4'
+services:
+  rabbitmq:
+    image: 'rabbitmq:3.6-alpine'
+    restart: 'always'
+    ports:
+      - '5672:5672'
+    volumes:
+      - '/var/lib/rabbitmq'
+    environment:
+      - "RABBITMQ_NODENAME=BOB-RABBIT"
+
+  influxdb:
+    image: 'influxdb:1.4-alpine'
+    restart: 'always'
+    ports:
+      - '8083:8083'  # admin interface
+      - '8086:8086'  # http db interface
+      - '4444:4444/udp'  # upd
+    volumes:
+      - '/var/lib/influxdb'
+    environment:
+      - "INFLUXDB_REPORTING_DISABLED=true"
+      - "INFLUXDB_ADMIN_USER=admin"
+      - "INFLUXDB_ADMIN_PASSWORD=testpw"

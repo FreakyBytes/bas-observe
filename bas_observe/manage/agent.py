@@ -38,7 +38,7 @@ class SimulatedAgent(Agent):
     It will mock multiple agents, based on filter rules
     """
 
-    def __init__(self, conf: Config, log_source: str, agent_filter: {}, frame_length: timedelta=timedelta(seconds=10), start: datetime=None, end: datetime=None):
+    def __init__(self, conf: Config, log_source: str, agent_filter: {knx.bitmask.Bitmask: str}, window_length: timedelta=timedelta(seconds=10), start: datetime=None, end: datetime=None, limit: int=None):
         """Creates a new simulated agent
 
         Attributes:
@@ -54,7 +54,7 @@ class SimulatedAgent(Agent):
                                 knx.bitmask.Bitmask: 'agent2',
                             }
                             ```
-            frame_length    Length of one frame, i.e. for how long the knx
+            window_length   Length of one frame, i.e. for how long the knx
                             packets should be aggregated before sending off
                             to the collector.
                             Defaults to 10 seconds.
@@ -62,14 +62,18 @@ class SimulatedAgent(Agent):
                             Defaults to the very first log entry
             end             Datetime where to stop processing the log
                             Defaults to the very last log entry
+            limit           Maximum amount of telegrams to process
+                            Defaults to None, indicating no boundary
         """
         super().__init__(conf)
 
         self.log_source = log_source
         self.agent_filter = agent_filter
-        self.frame_length = frame_length
+        self.agent_set = set(agent_filter.values())
+        self.window_length = window_length
         self.start = start
         self.end = end
+        self.limit = limit
 
         self.log.info("Initialized Simulated Agent for project {}", self.conf.project_name)
 
@@ -79,7 +83,67 @@ class SimulatedAgent(Agent):
     def run(self):
         """Runs the simulated agents
         """
-        pass
+
+        # init connection to AMQP server
+        self.get_channel()
+
+        # get generator with telegrams
+        log = self.read_log()
+
+        # TODO improve window submission situation. Last window might not be submitted correctly
+        next_window = None  # border at which a new frame is started
+        windows = None
+        for telegram in log:
+            if telegram.timestamp >= next_window:
+                self.submit_windows(windows, next_window)
+                windows = None
+
+            if not windows:
+                windows = self.setup_new_windows(telegram.timestamp)
+                next_window = telegram.timestamp + self.window_length
+
+            for mask, agent in self.agent_filter.items():
+                if mask == int(telegram.src):
+                    windows[agent].process_telegram(telegram)
+                if mask == int(telegram.dest):
+                    windows[agent].process_telegram(telegram)
+
+    def submit_windows(self, windows, end: datetime):
+        for window in windows.values():
+            window.finish(end)
+            json = window.to_dict()
+            self.channel.basic_publish(exchange=self.conf.name_exchange_agents, routing_key='', body=json)
+
+    def setup_new_windows(self, start: datetime) -> {str: Window}:
+        windows = {}
+        for agent in self.agent_set:
+            windows[agent] = Window(start, agent)
+
+        return windows
+
+    def read_log(self):
+
+        with open(self.log_source) as fp:
+            # jump to the start
+            self._seek_start(fp)
+            count: int = 0
+
+            for row in csv.reader(fp, delimiter='\t'):
+                timestamp = self._parse_csv_date(' '.join(row[0:2]))
+
+                if self.limit and count > self.limit:
+                    # quit on limit
+                    break
+                if self.end and timestamp >= self.end:
+                    # quit on end
+                    break
+                else:
+                    telegram = knx.parse_knx_telegram(bytes.fromhex(row[5]), timestamp)
+                    count += 1
+                    yield telegram
+
+    def _parse_csv_date(self, date):
+        return datetime.strptime(date, '%H:%M:%S %Y-%m-%d')
 
     def _seek_start(self, fp) -> bool:
         """Tries to seek the start datetime in the log
@@ -91,8 +155,58 @@ class SimulatedAgent(Agent):
             return False
 
         for row in csv.reader(fp, delimiter='\t'):
-            timestamp = datetime.strptime(' '.join(row[0:2]), '%H:%M:%S %Y-%m-%d')
+            timestamp = self._parse_csv_date(' '.join(row[0:2]))
             if timestamp >= self.start:
                 return True
 
         return False
+
+
+class Window(object):
+    """Analystic window
+    """
+
+    def __init__(self, start: datetime, agent: str):
+        self.start: datetime = start
+        self.end: datetime = None
+        self.agent: str = agent
+        self.finished: bool = False
+
+        self.src_addr = {}
+        self.dest_addr = {}
+        self.apci = {}
+        self.length = {}
+        self.hop_count = {}
+        self.priority = {}
+
+    def process_telegram(self, telegram) -> None:
+        self._inc_dict(self.src_addr, str(telegram.src))
+        self._inc_dict(self.dest_addr, str(telegram.dest))
+        self._inc_dict(self.apci, str(telegram.apci))
+        self._inc_dict(self.length, telegram.payload_length)
+        self._inc_dict(self.hop_count, telegram.hop_count)
+        self._inc_dict(self.priority, str(telegram.priority))
+
+    def finish(self, end: datetime) -> None:
+        self.finish = True
+        self.end = end
+
+    def to_dict(self) -> {}:
+        return {
+            'agent': self.agent,
+            'start': str(self.start),
+            'end': str(self.end),
+            'src': self.src_addr,
+            'dest': self.dest_addr,
+            'apci': self.apci,
+            'length': self.length,
+            'hop_count': self.hop_count,
+            'priority': self.priority,
+        }
+
+    def influxdb_json(self) -> {}:
+        # TODO
+        return {}
+
+    def _inc_dict(self, d, key):
+        d[key] = d.get(key, 0) + 1

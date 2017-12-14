@@ -20,6 +20,6 @@ setup(name='BasObserve',
       ],
       entry_points='''
         [console_scripts]
-        bob=bas_observe.cli:cli
+        bob=bas_observe.cli:run_cli
       ''',
       )

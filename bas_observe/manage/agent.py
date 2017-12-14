@@ -5,9 +5,27 @@ import logging
 import baos_knx_parser as knx
 
 from ..config import Config
+from .. import datamodel
 
 
-class Agent(object):
+class AgentWindow(datamodel.Window):
+
+    def __init__(self, start: datetime, agent: str):
+        super().__init__(start, agent)
+
+    def process_telegram(self, telegram) -> None:
+        self._inc_dict(self.src_addr, str(telegram.src))
+        self._inc_dict(self.dest_addr, str(telegram.dest))
+        self._inc_dict(self.apci, str(telegram.apci))
+        self._inc_dict(self.length, telegram.payload_length)
+        self._inc_dict(self.hop_count, telegram.hop_count)
+        self._inc_dict(self.priority, str(telegram.priority))
+
+    def _inc_dict(self, d, key):
+        d[key] = d.get(key, 0) + 1
+
+
+class BaseAgent(object):
     """Abstract base class for agent implementations
     """
 
@@ -32,7 +50,7 @@ class Agent(object):
         raise NotImplementedError("run function not implemented")
 
 
-class SimulatedAgent(Agent):
+class SimulatedAgent(BaseAgent):
     """Agent implementation parsing and injecting BAOS-KNX packages into the system.
     It will mock multiple agents, based on filter rules
     """
@@ -113,10 +131,10 @@ class SimulatedAgent(Agent):
             json = window.to_dict()
             self.channel.basic_publish(exchange=self.conf.name_exchange_agents, routing_key='', body=json)
 
-    def setup_new_windows(self, start: datetime) -> {str: Window}:
+    def setup_new_windows(self, start: datetime) -> {str: AgentWindow}:
         windows = {}
         for agent in self.agent_set:
-            windows[agent] = Window(start, agent)
+            windows[agent] = AgentWindow(start, agent)
 
         return windows
 
@@ -159,53 +177,3 @@ class SimulatedAgent(Agent):
                 return True
 
         return False
-
-
-class Window(object):
-    """Analystic window
-    """
-
-    def __init__(self, start: datetime, agent: str):
-        self.start: datetime = start
-        self.end: datetime = None
-        self.agent: str = agent
-        self.finished: bool = False
-
-        self.src_addr = {}
-        self.dest_addr = {}
-        self.apci = {}
-        self.length = {}
-        self.hop_count = {}
-        self.priority = {}
-
-    def process_telegram(self, telegram) -> None:
-        self._inc_dict(self.src_addr, str(telegram.src))
-        self._inc_dict(self.dest_addr, str(telegram.dest))
-        self._inc_dict(self.apci, str(telegram.apci))
-        self._inc_dict(self.length, telegram.payload_length)
-        self._inc_dict(self.hop_count, telegram.hop_count)
-        self._inc_dict(self.priority, str(telegram.priority))
-
-    def finish(self, end: datetime) -> None:
-        self.finish = True
-        self.end = end
-
-    def to_dict(self) -> {}:
-        return {
-            'agent': self.agent,
-            'start': str(self.start),
-            'end': str(self.end),
-            'src': self.src_addr,
-            'dest': self.dest_addr,
-            'apci': self.apci,
-            'length': self.length,
-            'hop_count': self.hop_count,
-            'priority': self.priority,
-        }
-
-    def influxdb_json(self) -> {}:
-        # TODO
-        return {}
-
-    def _inc_dict(self, d, key):
-        d[key] = d.get(key, 0) + 1

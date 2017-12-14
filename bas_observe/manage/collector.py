@@ -8,7 +8,7 @@ from .. import datamodel
 class CollectorWindow(datamodel.Window):
 
     @classmethod
-    def from_dict(cls, d: {}) -> CollectorWindow:
+    def from_dict(cls, d: {}):
         return super(CollectorWindow, cls).from_dict(d)
 
     def influxdb_json(self, project_name: str) -> {}:
@@ -43,7 +43,7 @@ class CollectorWindow(datamodel.Window):
 
 class Collector(object):
 
-    def __init__(self, conf: Config, agent_set: set(str)):
+    def __init__(self, conf: Config, agent_set: set):
         """Inits the collector, which is responsible of aggregating the messages
         from the agents and sending them off to the analysers
 

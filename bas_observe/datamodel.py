@@ -42,7 +42,7 @@ class Window(object):
         }
 
     @classmethod
-    def from_dict(cls, d) -> Window:
+    def from_dict(cls, d):
         """initiates a window from a dict
         """
 

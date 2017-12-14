@@ -1,5 +1,4 @@
 import csv
-import binascii
 from datetime import datetime, timedelta
 import logging
 

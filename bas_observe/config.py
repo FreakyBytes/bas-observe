@@ -67,9 +67,9 @@ class Config(object):
 
     def get_amqp_connection(self) -> pika.connection.Connection:
         if not self._amqp_connection:
-            log.debug("Attemp AMQP connection to {url}", url=self.amqp_url)
+            log.debug(f"Attemp AMQP connection to {self.amqp_url}")
             self._amqp_connection = pika.BlockingConnection(pika.URLParameters(self.amqp_url))
-            log.info("Connected to AMQP server {url}", url=self.amqp_url)
+            log.info(f"Connected to AMQP server {self.amqp_url}")
 
         return self._amqp_connection
 
@@ -84,7 +84,7 @@ class Config(object):
     def get_influxdb_connection(self) -> influxdb.InfluxDBClient:
         if not self._influxdb_connection:
             param = self.parse_influxdb_url()
-            log.debug("Attemp connection to InfluxDB at {url}", url=self.influxdb_url)
+            log.debug(f"Attemp connection to InfluxDB at {self.influxdb_url}")
             self._influxdb_connection = influxdb.InfluxDBClient(
                 host=param['host'],
                 port=param['port'],
@@ -95,7 +95,7 @@ class Config(object):
                 use_udp=True if param['scheme'] == 'udp' else False,
                 udp_port=param['port']
             )
-            log.info("Connected to InfluxDB at {url}", url=self.influxdb_url)
+            log.info(f"Connected to InfluxDB at {self.influxdb_url}")
 
         return self._influxdb_connection
 
@@ -138,8 +138,8 @@ class Config(object):
 def setup_logging(level=logging.WARN, logfile=None) -> None:
     log_root = logging.getLogger()
     log_root.setLevel(level)
-    # log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-    log_format = logging.Formatter('{asctime} {name: <12} {levelname: <8} {message}', style='{')
+    log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    # log_format = logging.Formatter('{asctime} {name: <12} {levelname: <8} {message}', style='{')
 
     # setting up logging to file
     if logfile:

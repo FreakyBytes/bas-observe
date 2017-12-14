@@ -36,29 +36,35 @@ class Config(object):
     _influxdb_connection = attrib(default=None)
 
     def parse_influxdb_url(self):
-        url = urllib.parse.urlparse(self.amqp_url)
-        if url['scheme'] not in ('http', 'https', 'udp'):
-            raise ValueError("Only http, https, and udp are supported as protocoll for InfluxDB")
+        url = urllib.parse.urlparse(self.influxdb_url)
+        if url.scheme not in ('http', 'https', 'udp'):
+            raise ValueError(f"Only http, https, and udp are supported as protocoll for InfluxDB, not {self.influxdb_url}")
 
         result = {
-            'scheme': url['scheme'],
-            'host': url['hostname'],
-            'user': url['username'],
-            'pass': url['password'],
+            'scheme': url.scheme,
+            'host': url.hostname,
+            'user': url.username,
+            'pass': url.password,
         }
-        if url['port']:
-            result['port'] = int(url['port'])
-        elif self._influxdb_proto == 'https':
+        if url.port:
+            result['port'] = int(url.port)
+        elif url.scheme == 'https':
             result['port'] = 443
-        elif self._influxdb_proto == 'http':
+        elif url.scheme == 'http':
             result['port'] = 8086
-        elif self._influxdb_proto == 'udp':
+        elif url.scheme == 'udp':
             result['port'] = 4444
 
-        if url['path']:
-            result['db'] = url['path']
+        if url.path:
+            db = url.path
+            if db[0] == '/':
+                db = db[1:]
+            if db[-1] == '/':
+                db = db[:-1]
+            print(f"InfluxDB {db}")
+            result['db'] = db
         else:
-            result['db'] = 'bob_{name}'.format(name=self.project_name)
+            result['db'] = f'bob_{self.project_name}'
 
         return result
 

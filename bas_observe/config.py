@@ -32,11 +32,8 @@ class Config(object):
     amqp_url = attrib()  # type: str
     influxdb_url = attrib()  # type: str
 
-    def __init___(self, *args, **kwargs):
-        super(Config, self).__init__(*args, **kwargs)
-
-        self._amqp_connection = None
-        self._influxdb_connection = None
+    _amqp_connection = attrib(default=None)
+    _influxdb_connection = attrib(default=None)
 
     def parse_influxdb_url(self):
         url = urllib.parse.urlparse(self.amqp_url)
@@ -76,7 +73,7 @@ class Config(object):
     def get_amqp_channel(self) -> pika.channel.Channel:
         connection = self.get_amqp_connection()
         log.info("Get new AMQP channel")
-        channel = connection.get_channel()
+        channel = connection.channel()
         # just in case declare the pipelines every time a new channel is opened
         declare_amqp_pipeline(self, channel)
         return channel

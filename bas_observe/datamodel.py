@@ -46,8 +46,8 @@ class Window(object):
         """initiates a window from a dict
         """
 
-        window = cls(start=datetime.strptime(d['start'], 'YYYY-MM-DDTHH:MM:SS.mmmmmm'), agent=d['agent'])
-        window.end = datetime.strptime(d['end'], 'YYYY-MM-DDTHH:MM:SS.mmmmmm') if d.get('end', None) else None
+        window = cls(start=datetime.strptime(d['start'], 'YYYY-MM-DD HH:MM:SS'), agent=d['agent'])
+        window.end = datetime.strptime(d['end'], 'YYYY-MM-DD HH:MM:SS') if d.get('end', None) else None
         window.finished = False if not window.end else True
 
         window.src_addr = d.get('src', {})

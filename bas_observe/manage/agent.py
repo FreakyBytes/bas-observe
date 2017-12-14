@@ -94,10 +94,10 @@ class SimulatedAgent(BaseAgent):
         self.end = end
         self.limit = limit
 
-        self.log.info("Initialized Simulated Agent for project {}", self.conf.project_name)
+        self.log.info(f"Initialized Simulated Agent for project {self.conf.project_name}")
 
     def _init_logger(self):
-        self.log = logging.getLogger('SimulatedAgent')
+        self.log = logging.getLogger('SIM-AGENT')
 
     def run(self):
         """Runs the simulated agents
@@ -113,7 +113,7 @@ class SimulatedAgent(BaseAgent):
         next_window = None  # border at which a new frame is started
         windows = None
         for telegram in log:
-            if telegram.timestamp >= next_window:
+            if next_window and telegram.timestamp >= next_window:
                 self.submit_windows(windows, next_window)
                 windows = None
 

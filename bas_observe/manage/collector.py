@@ -55,12 +55,13 @@ class Collector(object):
         self.conf = conf
         self.log = None
         self.channel = None
+        self.influxdb = None
         self.agent_set = agent_set
 
         self._init_log()
 
     def _init_log(self):
-        self.log = logging.getLogger('Collector')
+        self.log = logging.getLogger('COLLECTOR')
 
     def get_channel(self):
         if not self.channel:
@@ -76,17 +77,23 @@ class Collector(object):
 
     def run(self):
         """Runs the collector"""
+        self.log.info("Started collector. Setting up connections...")
 
         # get the AMQP channel and subscribe to relevant topics
-        channel = self.get_channel
-        channel.base_consume(self.on_agent_message, queue=self.con.name_queue_agents, no_ack=False)
+        channel = self.get_channel()
+        channel.basic_consume(self.on_agent_message, queue=self.conf.name_queue_agents, no_ack=False)
 
         # get influxdb client
         self.get_influxdb()
 
+        # run the loop
+        self.log.info("Start waiting for messages")
+        channel.start_consuming()
+
     def on_agent_message(self, channel, method, properties, body):
 
         window = CollectorWindow.from_dict(json.loads(body))
+        self.log.debug(f"Got new message from agent {window.agent} from {window.start} to {window.end}")
 
         try:
             data = window.influxdb_json()

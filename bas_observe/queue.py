@@ -16,23 +16,26 @@ def declare_amqp_pipeline(conf: config, channel: pika.channel.Channel, durable: 
     """
 
     # agents to collector
-    channel.exchange_declare(exchange=conf.name_exchange_agents, type='fanout')
+    channel.exchange_declare(exchange=conf.name_exchange_agents, exchange_type='fanout')
     queue_agents = channel.queue_declare(queue=conf.name_queue_agents, durable=durable)
 
     channel.queue_bind(exchange=conf.name_exchange_agents, queue=queue_agents.method.queue)
 
     # collector to analysers
-    channel.exchange_declare(exchange=conf.name_exchange_analyser, type='fanout')
+    channel.exchange_declare(exchange=conf.name_exchange_analyser, exchange_type='fanout')
     queue_analyser_addr = channel.queue_declare(queue=conf.name_queue_analyser_addr, durable=durable)
     queue_analyser_entropy = channel.queue_declare(queue=conf.name_queue_analyser_entropy, durable=durable)
     queue_analyser_lof = channel.queue_declare(queue=conf.name_queue_analyser_lof, durable=durable)
 
     channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_addr.method.queue)
     channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_entropy.method.queue)
-    channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_lof).method.queue
+    channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_lof.method.queue)
 
     # analysers to collector for metrics
-    channel.exchange_declare(exchange=conf.name_exchange_metric, type='fanout')
+    channel.exchange_declare(exchange=conf.name_exchange_metric, exchange_type='fanout')
     queue_metric = channel.queue_declare(queue=conf.name_queue_metric, durable=durable)
 
     channel.queue_bind(exchange=conf.name_exchange_metric, queue=queue_metric.method.queue)
+
+    # only 1 packet to process at a time
+    channel.basic_qos(prefetch_count=1)

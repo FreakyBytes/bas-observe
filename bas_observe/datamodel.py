@@ -41,11 +41,20 @@ class Window(object):
             'priority': self.priority,
         }
 
-    @staticmethod
-    def from_dict(d) -> Window:
-        # TODO
-        return None
+    @classmethod
+    def from_dict(cls, d) -> Window:
+        """initiates a window from a dict
+        """
 
-    def influxdb_json(self) -> {}:
-        # TODO
-        return {}
+        window = cls(start=datetime.strptime(d['start'], 'YYYY-MM-DDTHH:MM:SS.mmmmmm'), agent=d['agent'])
+        window.end = datetime.strptime(d['end'], 'YYYY-MM-DDTHH:MM:SS.mmmmmm') if d.get('end', None) else None
+        window.finished = False if not window.end else True
+
+        window.src_addr = d.get('src', {})
+        window.dest_addr = d.get('dest', {})
+        window.apci = d.get('apci', {})
+        window.length = d.get('length', {})
+        window.hop_count = d.get('hop_count', {})
+        window.priority = d.get('priority', {})
+
+        return window

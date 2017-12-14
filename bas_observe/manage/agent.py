@@ -1,6 +1,7 @@
 import csv
 from datetime import datetime, timedelta
 import logging
+import json
 
 import baos_knx_parser as knx
 
@@ -31,6 +32,7 @@ class BaseAgent(object):
 
     def __init__(self, conf: Config):
         self.conf = conf
+        self.log = None
         self.channel = None
 
         self._init_logger()
@@ -128,8 +130,8 @@ class SimulatedAgent(BaseAgent):
     def submit_windows(self, windows, end: datetime):
         for window in windows.values():
             window.finish(end)
-            json = window.to_dict()
-            self.channel.basic_publish(exchange=self.conf.name_exchange_agents, routing_key='', body=json)
+            data = json.dumps(window.to_dict())
+            self.channel.basic_publish(exchange=self.conf.name_exchange_agents, routing_key='', body=data)
 
     def setup_new_windows(self, start: datetime) -> {str: AgentWindow}:
         windows = {}

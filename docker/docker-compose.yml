@@ -23,3 +23,23 @@ services:
       - "INFLUXDB_REPORTING_DISABLED=true"
       - "INFLUXDB_ADMIN_USER=admin"
       - "INFLUXDB_ADMIN_PASSWORD=testpw"
+
+  grafana:
+    image: 'grafana/grafana:latest'
+    restart: 'always'
+    depends_on:
+      - influxdb
+    ports:
+      - '3000:3000'
+    volumes:
+      - '/var/lib/grafana'
+    environment:
+      - "GF_INSTALL_PLUGINS=grafana-clock-panel,petrslavotinek-carpetplot-panel,neocat-cal-heatmap-panel,natel-plotly-panel,vonage-status-panel,natel-influx-admin-panel,citilogics-geoloop-panel"
+      - "GF_SERVER_ROOT_URL=http://feona.informatik.uni-rostock.de:3000/"
+      - "GF_DATABASE_TYPE=sqlite3"
+      - "GF_SECURITY_SECRET_KEY=c9K0cpK82KL44PhFBubtgzIUPhVY1YsnBXQldx1IUXnttNvKpLLwHXOM4HXb5WZiPycPVCrQ6dOzQ7EeDbldR_igc5Ui4bqI09rUNDXpkY2EqyotMrOWZKWGGD3qE9xe"
+      - "GF_SECURITY_ADMIN_USER=admin"
+      - "GF_SECURITY_ADMIN_PASSWORD=testpw"
+      - "GF_USERS_ALLOW_SIGN_UP=false"
+      - "GF_ANALYTICS_REPORTING_ENABLED=false"
+      - "GF_SMTP_ENABLED=false"

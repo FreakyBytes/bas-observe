@@ -1,5 +1,5 @@
 """
-Module containing all common data model classes for BOb
+Package containing all common data model classes for BOb
 """
 from datetime import datetime
 

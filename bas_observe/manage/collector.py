@@ -1,5 +1,7 @@
 import logging
 import json
+from datetime import datetime
+from collections import OrderedDict
 
 from ..config import Config
 from .. import datamodel, misc
@@ -23,7 +25,8 @@ class CollectorWindow(datamodel.Window):
                     'agent': self.agent,
                 },
                 'fields': {
-                    'end': misc.format_datetime(self.end),
+                    # 'end': misc.format_datetime(self.end),
+                    'end': self.end.isoformat(),
                     'length': (self.end - self.start).seconds,
                 }
             }
@@ -95,8 +98,20 @@ class Collector(object):
         self.get_influxdb()
 
         # run the loop
-        self.log.info("Start waiting for messages")
-        channel.start_consuming()
+        try:
+            self.log.info("Start waiting for messages")
+            self.setup_relay_timeout(channel)
+            channel.start_consuming()
+        except KeyboardInterrupt:
+            channel.stop_consuming()
+        finally:
+            self.conf._amqp_connection.close()
+
+    def setup_relay_timeout(self, channel=None):
+        if not channel:
+            channel = self.channel
+
+        channel.add_timeout(self.conf.relay_timeout, self.relay_messages)
 
     def on_agent_message(self, channel, method, properties, body):
 
@@ -113,5 +128,39 @@ class Collector(object):
         finally:
             pass
 
-        # TODO check if all windows are in the database
-        # TODO relay all windows to the analysers
+    def relay_messages(self):
+        try:
+            pass
+            # TODO check if all windows are in the database
+            # TODO relay all windows to the analysers
+        finally:
+            self.setup_relay_timeout()
+
+    def _get_unrelayed_windows(self):
+        """Gets the latest unrelayed window messages ordered around a mean timestamp
+        """
+        windows = OrderedDict()
+        result = self.influxdb.query(
+            'SELECT "end", "agent" FROM "window_length" WHERE project = \'{project}\' GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
+                limit=10,
+                project=self.conf.project_name,
+            )
+        )
+
+        for row in result.get_points('window_length'):
+            # check if start time is already in the dict
+            time = misc.parse_influxdb_datetime(row['time'])
+            key = misc.get_uncertain_date_key(windows, time)
+
+            if not key:
+                # date is not yet in the dict
+                windows[time] = [(time, row['agent'])]
+            else:
+                # entry already exists, so add this row as well
+                windows[time].append((time, row['agent']))
+                # recalc key timestamp
+                new_key = datetime.fromtimestamp(sum([e[0].timestamp() for e in windows[time]]) / len(windows[time]))
+                windows[new_key] = windows[time]
+                del windows[time]
+
+        return windows

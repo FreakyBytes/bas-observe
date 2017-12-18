@@ -31,6 +31,7 @@ class Config(object):
     project_name = attrib()  # type: str
     amqp_url = attrib()  # type: str
     influxdb_url = attrib()  # type: str
+    relay_timeout = attrib(default=10)  # type: int
 
     _amqp_connection = attrib(default=None)
     _influxdb_connection = attrib(default=None)

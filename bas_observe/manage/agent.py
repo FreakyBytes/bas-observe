@@ -29,6 +29,7 @@ class AgentWindow(datamodel.Window):
 class BaseAgent(object):
     """Abstract base class for agent implementations
     """
+    LOGGER_NAME = 'AGENT'
 
     def __init__(self, conf: Config):
         self.conf = conf
@@ -38,7 +39,7 @@ class BaseAgent(object):
         self._init_logger()
 
     def _init_logger(self):
-        self.log = logging.getLogger('Agent')
+        self.log = logging.getLogger(self.LOGGER_NAME)
 
     def get_channel(self):
         if not self.channel:
@@ -56,6 +57,7 @@ class SimulatedAgent(BaseAgent):
     """Agent implementation parsing and injecting BAOS-KNX packages into the system.
     It will mock multiple agents, based on filter rules
     """
+    LOGGER_NAME = 'SIM-AGENT'
 
     def __init__(self, conf: Config, log_source: str, agent_filter: {knx.bitmask.Bitmask: str}, window_length: timedelta=timedelta(seconds=10), start: datetime=None, end: datetime=None, limit: int=None):
         """Creates a new simulated agent
@@ -95,9 +97,6 @@ class SimulatedAgent(BaseAgent):
         self.limit = limit
 
         self.log.info(f"Initialized Simulated Agent for project {self.conf.project_name}")
-
-    def _init_logger(self):
-        self.log = logging.getLogger('SIM-AGENT')
 
     def run(self):
         """Runs the simulated agents

@@ -49,6 +49,7 @@ class CollectorWindow(datamodel.Window):
 
 
 class Collector(object):
+    LOGGER_NAME = 'COLLECTOR'
 
     def __init__(self, conf: Config, agent_set: set):
         """Inits the collector, which is responsible of aggregating the messages
@@ -68,7 +69,7 @@ class Collector(object):
         self._init_log()
 
     def _init_log(self):
-        self.log = logging.getLogger('COLLECTOR')
+        self.log = logging.getLogger(self.LOGGER_NAME)
 
     def get_channel(self):
         if not self.channel:

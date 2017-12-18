@@ -5,8 +5,10 @@ Main entrypoint for the command line interface.
 Called in __module__.py
 """
 import logging
+from datetime import datetime, timedelta
 
 import click
+import baos_knx_parser as knx
 
 from . import config
 from .manage.agent import SimulatedAgent
@@ -16,26 +18,60 @@ from .manage.collector import Collector
 @click.group()
 @click.option('--log-file', default=None, help="Writes log output to file")
 @click.option('-l', '--log-level', default='INFO', type=click.Choice(['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL']))
-@click.option('--project', help="project name")
+@click.option('--project', prompt=True, help="project name")
 @click.option('--amqp', default='amqp://localhost:5672', help="URL to the AMQP/RabbitMQ server")
-@click.option('--influxdb', default='http://localhost:80', help="URL to the InfluxDB server")
+@click.option('--influxdb', default='http://localhost:8086/bob', help="URL to the InfluxDB server")
 @click.pass_context
 def cli(ctx, log_file, log_level, project, amqp, influxdb):
     """
     Bas OBserve (bob)
     """
     config.setup_logging(level=log_level, logfile=log_file)
-    ctx.obj['LOG'] = logging.getLogger('CLI')  # re initiate logger
+    log = logging.getLogger('CLI')  # re initiate logger
+    ctx.obj['LOG'] = log
+
+    if not project:
+        log.error("Project name not specified!")
+        ctx.exit()
+    log.info(f"Started Bas OBserve with project {project}")
 
     ctx.obj['CONF'] = config.Config(project_name=project, amqp_url=amqp, influxdb_url=influxdb)
 
 
 @cli.command('simulate', short_help="simulates agents by injecting packets from a log file")
+@click.argument('dump')
 @click.option('-a', '--agent', nargs=3, type=(str, int, int), multiple=True,
               help="defines an agent filter with <AGENT_NAME ADDR_FILTER ADDR_FILTER_MASK>")
+@click.option('--length', type=int, default=10,
+              help="Length of a window in seconds")
+@click.option('--limit', type=int, default=0,
+              help="Maximum amount of KNX packets to parse")
+@click.option('--start', type=datetime, default=None,
+              help="Timestamp where to start parsing the log")
+@click.option('--end', type=datetime, default=None,
+              help="Timestamp where to stop parsing the log")
 @click.pass_context
-def simulate(ctx):
-    pass
+def simulate(ctx, dump, agent, length, limit, start, end):
+    log = ctx.obj['LOG']
+    agent_filter = {}
+    for a in agent:
+        mask = knx.bitmask.Bitmask(a[1], a[2])
+        agent_filter[mask] = a[0]
+        log.debug(f"Defined agent {a[0]} with {mask}")
+
+    agent_set = set(agent_filter.values())
+    log.info(f"{len(agent_set)} agents defined: {', '.join(agent_set)}")
+
+    agent = SimulatedAgent(
+        ctx.obj['CONF'],
+        dump,
+        agent_filter=agent_filter,
+        window_length=timedelta(seconds=length) if length > 0 else None,
+        start=start,
+        end=end,
+        limit=limit
+    )
+    agent.run()
 
 
 @cli.command('collector', short_help="collects agent windows to InfluxDB and forwards them to the analysers")

@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import json
 
@@ -161,7 +161,9 @@ class SimulatedAgent(BaseAgent):
                     yield telegram
 
     def _parse_csv_date(self, date):
-        return datetime.strptime(date, '%H:%M:%S %Y-%m-%d')
+        parsed = datetime.strptime(date, '%H:%M:%S %Y-%m-%d')
+        parsed.replace(tzinfo=timezone.utc)
+        return parsed
 
     def _seek_start(self, fp) -> bool:
         """Tries to seek the start datetime in the log

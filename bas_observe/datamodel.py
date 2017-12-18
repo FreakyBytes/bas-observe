@@ -3,6 +3,8 @@ Package containing all common data model classes for BOb
 """
 from datetime import datetime
 
+from . import misc
+
 
 class Window(object):
     """Analystic window
@@ -31,8 +33,8 @@ class Window(object):
     def to_dict(self) -> {}:
         return {
             'agent': self.agent,
-            'start': str(self.start),
-            'end': str(self.end),
+            'start': misc.format_datetime(self.start),
+            'end': misc.format_datetime(self.end),
             'src': self.src_addr,
             'dest': self.dest_addr,
             'apci': self.apci,
@@ -46,8 +48,8 @@ class Window(object):
         """initiates a window from a dict
         """
 
-        window = cls(start=datetime.strptime(d['start'], 'YYYY-MM-DD HH:MM:SS'), agent=d['agent'])
-        window.end = datetime.strptime(d['end'], 'YYYY-MM-DD HH:MM:SS') if d.get('end', None) else None
+        window = cls(start=misc.parse_datetime(d['start']), agent=d['agent'])
+        window.end = misc.parse_datetime(d['end']) if d.get('end', None) else None
         window.finished = False if not window.end else True
 
         window.src_addr = d.get('src', {})

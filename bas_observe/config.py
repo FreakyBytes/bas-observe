@@ -61,7 +61,7 @@ class Config(object):
                 db = db[1:]
             if db[-1] == '/':
                 db = db[:-1]
-            print(f"InfluxDB {db}")
+
             result['db'] = db
         else:
             result['db'] = f'bob_{self.project_name}'

@@ -2,7 +2,7 @@ import logging
 import json
 
 from ..config import Config
-from .. import datamodel
+from .. import datamodel, misc
 
 
 class CollectorWindow(datamodel.Window):
@@ -12,6 +12,7 @@ class CollectorWindow(datamodel.Window):
         return super(CollectorWindow, cls).from_dict(d)
 
     def influxdb_json(self, project_name: str) -> {}:
+        # time_str = misc.format_datetime(self.start)
         time_str = self.start.isoformat()
         data = [
             {
@@ -21,13 +22,19 @@ class CollectorWindow(datamodel.Window):
                     'project': project_name,
                     'agent': self.agent,
                 },
-                'values': {
-                    'end': self.end.isoformat(),
+                'fields': {
+                    'end': misc.format_datetime(self.end),
                     'length': (self.end - self.start).seconds,
                 }
             }
         ]
         for field in ('src_addr', 'dest_addr', 'apci', 'length', 'hop_count', 'priority'):
+            value = getattr(self, field)
+            if not value:
+                # skip fields with empty values
+                print(f"skipped {field} because '{value}' seems empty")
+                continue
+
             data.append({
                 'time': time_str,
                 'measurement': field,
@@ -35,7 +42,7 @@ class CollectorWindow(datamodel.Window):
                     'project': project_name,
                     'agent': self.agent,
                 },
-                'values': getattr(self, field)
+                'fields': value
             })
 
         return data
@@ -71,7 +78,7 @@ class Collector(object):
 
     def get_influxdb(self):
         if not self.influxdb:
-            self.influxdb = self.conf.get_influxdb_connection
+            self.influxdb = self.conf.get_influxdb_connection()
 
         return self.influxdb
 
@@ -96,11 +103,12 @@ class Collector(object):
         self.log.debug(f"Got new message from agent {window.agent} from {window.start} to {window.end}")
 
         try:
-            data = window.influxdb_json()
+            data = window.influxdb_json(self.conf.project_name)
+            self.log.debug(data)
             self.get_influxdb().write_points(data)
 
             # ack message
-            channel.base_ack(delivery_tag=method.delivery_tag)
+            channel.basic_ack(delivery_tag=method.delivery_tag)
         finally:
             pass
 

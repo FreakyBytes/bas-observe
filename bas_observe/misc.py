@@ -5,7 +5,7 @@ Package containing misc helper functions
 from datetime import datetime
 
 
-_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 
 
 def format_datetime(dt):

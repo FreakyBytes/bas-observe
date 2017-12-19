@@ -7,6 +7,9 @@ from ..config import Config
 from .. import datamodel, misc
 
 
+_MEASUREMENTS = ('src_addr', 'dest_addr', 'apci', 'length', 'hop_count', 'priority')
+
+
 class CollectorWindow(datamodel.Window):
 
     @classmethod
@@ -31,7 +34,7 @@ class CollectorWindow(datamodel.Window):
                 }
             }
         ]
-        for field in ('src_addr', 'dest_addr', 'apci', 'length', 'hop_count', 'priority'):
+        for field in _MEASUREMENTS:
             value = getattr(self, field)
             if not value:
                 # skip fields with empty values
@@ -108,13 +111,19 @@ class Collector(object):
             self.conf._amqp_connection.close()
 
     def setup_relay_timeout(self, channel=None):
+        """
+        sets up the timeout for checking, if windows can be relayed to the analysers
+        e.g. ansynchronously executes `self.relay_messages()`
+        """
         if not channel:
             channel = self.channel
 
         channel.add_timeout(self.conf.relay_timeout, self.relay_messages)
 
     def on_agent_message(self, channel, method, properties, body):
-
+        """
+        Callback processing AMQP messages from the agents
+        """
         window = CollectorWindow.from_dict(json.loads(body))
         self.log.debug(f"Got new message from agent {window.agent} from {window.start} to {window.end}")
 
@@ -129,17 +138,39 @@ class Collector(object):
             pass
 
     def relay_messages(self):
+        """
+        Checks wether windows are complete and can be relayed to the analysers
+        Also relays incomplete windows after conf.window_wait_timeout is exceeded
+        """
         try:
-            pass
-            # TODO check if all windows are in the database
-            # TODO relay all windows to the analysers
+            # get the unrelayed windows
+            windows = self._get_unrelayed_windows()
+
+            # iterate over the windows
+            for time, entries in windows.items():
+                # get a list of all agents in this windows
+                entry_agents = map(lambda x: x[1], entries)
+                # filter the agent_set for those agents, which are already present
+                missing_agents = filter(lambda agent: agent not in entry_agents, self.agent_set)
+
+                if len(missing_agents) == 0:
+                    # all agents are present for this window -> relay it
+                    self._relay_window(time, entries)
+                elif abs(datetime.now() - time).seconds > self.conf.window_wait_timeout:
+                    # maximum waiting time exceeded -> relay window anayway
+                    self.log.warn(f"Window aroung {time} still missing agent {', '.join(missing_agents)}, but exceeded {self.conf.window_wait_timeout}s. Relaying it anyway.")
+                    self._relay_window(time, entries)
+
         finally:
+            # whatever happens call this method again
             self.setup_relay_timeout()
 
-    def _get_unrelayed_windows(self):
-        """Gets the latest unrelayed window messages ordered around a mean timestamp
+    def _get_unrelayed_windows(self) -> {}:
+        """
+        Gets the latest unrelayed window messages ordered around a mean timestamp
         """
         windows = OrderedDict()
+        # TODO ajdust query so only unrelayed windows are returned
         result = self.influxdb.query(
             'SELECT "end", "agent" FROM "window_length" WHERE project = \'{project}\' GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
                 limit=10,
@@ -164,3 +195,19 @@ class Collector(object):
                 del windows[time]
 
         return windows
+
+    def _relay_window(self, time_key: datetime, window) -> None:
+        """
+        Relays a single window and marks it as relayed in the InfluxDB
+        """
+        query = []
+        for time, agent in window:
+            for measurement in _MEASUREMENTS:
+                query.append('SELECT * FROM "{measurement}" WHERE "agent" = \'{agent}\' and time = \'{time}\''.format(
+                    agent=agent,
+                    time=time.isoformat(),
+                    measurement=measurement,
+                ))
+
+        result = self.influxdb.query('; '.join(query))
+        

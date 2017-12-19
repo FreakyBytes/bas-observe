@@ -31,7 +31,10 @@ class Config(object):
     project_name = attrib()  # type: str
     amqp_url = attrib()  # type: str
     influxdb_url = attrib()  # type: str
-    relay_timeout = attrib(default=10)  # type: int
+    # timeout between the checks, if messages can be relayed to the analysers
+    relay_timeout = attrib(default=4)  # type: int
+    # maximum time to wait for all agent windows to appear
+    window_wait_timeout = attrib(default=60)  # type: int
 
     _amqp_connection = attrib(default=None)
     _influxdb_connection = attrib(default=None)

@@ -7,9 +7,6 @@ from ..config import Config
 from .. import datamodel, misc
 
 
-_MEASUREMENTS = ('src_addr', 'dest_addr', 'apci', 'length', 'hop_count', 'priority')
-
-
 class CollectorWindow(datamodel.Window):
 
     @classmethod
@@ -34,7 +31,7 @@ class CollectorWindow(datamodel.Window):
                 }
             }
         ]
-        for field in _MEASUREMENTS:
+        for field in misc.MEASUREMENTS:
             value = getattr(self, field)
             if not value:
                 # skip fields with empty values
@@ -188,11 +185,11 @@ class Collector(object):
                 windows[time] = [(time, row['agent'])]
             else:
                 # entry already exists, so add this row as well
-                windows[time].append((time, row['agent']))
+                windows[key].append((time, row['agent']))
                 # recalc key timestamp
-                new_key = datetime.fromtimestamp(sum([e[0].timestamp() for e in windows[time]]) / len(windows[time]))
-                windows[new_key] = windows[time]
-                del windows[time]
+                new_key = datetime.fromtimestamp(sum([e[0].timestamp() for e in windows[key]]) / len(windows[key]))
+                windows[new_key] = windows[key]
+                del windows[key]
 
         return windows
 
@@ -208,7 +205,7 @@ class Collector(object):
         # timestamps might differ slightly and joining multiple measurements
         # causes enourmous tables
         for time, agent in window:
-            for measurement in _MEASUREMENTS:
+            for measurement in ('window_length', ) + misc.MEASUREMENTS:
                 query.append('SELECT * FROM "{measurement}" WHERE "project" = \'{project}\' and "agent" = \'{agent}\' and time = \'{time}\''.format(
                     project=self.conf.project_name,
                     agent=agent,

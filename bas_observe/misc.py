@@ -5,6 +5,8 @@ Package containing misc helper functions
 from datetime import datetime, timedelta
 
 
+MEASUREMENTS = ('src_addr', 'dest_addr', 'apci', 'length', 'hop_count', 'priority')
+
 _DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 _DATETIME_ISO_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 

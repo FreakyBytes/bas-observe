@@ -172,7 +172,7 @@ class Collector(object):
         windows = OrderedDict()
         # TODO ajdust query so only unrelayed windows are returned
         result = self.influxdb.query(
-            'SELECT "end", "agent" FROM "window_length" WHERE project = \'{project}\' GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
+            'SELECT "end", "agent" FROM "window_length" WHERE "project" = \'{project}\' and "relayed" != True GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
                 limit=10,
                 project=self.conf.project_name,
             )

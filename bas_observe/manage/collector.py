@@ -201,13 +201,54 @@ class Collector(object):
         Relays a single window and marks it as relayed in the InfluxDB
         """
         query = []
+        agent_windows = {}
+
+        # one query per agent per measurement
+        # yes, this is super inefficient, but we can't group by agent since the
+        # timestamps might differ slightly and joining multiple measurements
+        # causes enourmous tables
         for time, agent in window:
             for measurement in _MEASUREMENTS:
-                query.append('SELECT * FROM "{measurement}" WHERE "agent" = \'{agent}\' and time = \'{time}\''.format(
+                query.append('SELECT * FROM "{measurement}" WHERE "project" = \'{project}\' and "agent" = \'{agent}\' and time = \'{time}\''.format(
+                    project=self.conf.project_name,
                     agent=agent,
                     time=time.isoformat(),
                     measurement=measurement,
                 ))
 
         result = self.influxdb.query('; '.join(query))
-        
+
+        agent_status = {}
+        for resultset in result:
+            # iterate over the different queries
+            (measure, nan), data = resultset.items()[0]
+            data = next(data)  # only contains one item, so we can simply pop it without heavy iteration
+            agent = data['agent']
+
+            if agent not in agent_windows:
+                agent_windows[agent] = datamodel.Window(misc.parse_influxdb_datetime(data['time']), agent)
+
+            # writes values to window
+            setattr(agent_windows[agent], measure, {k: v for k, v in data.items() if k not in ('time', 'project', 'agent')})
+
+            # saves the exact timestamp of the window_length/agent_state measurement, so it can be used to set the 'relayed' flag
+            if agent not in agent_status and measure == 'window_length':
+                agent_status['agent'] = data['time']
+
+        # relay the data!
+        data_json = [window.to_dict() for window in agent_windows.values()]
+        self.get_channel().basic_publish(exchange=self.conf.name_exchange_analyser, routing_key='', body=data_json)
+
+        # set the relayed timestamp
+        for agent, timestamp in agent_status:
+            self.get_influxdb().write_points({
+                'time': timestamp,
+                'measurement': 'window_length',
+                'tags': {
+                    'project': self.conf.project_name,
+                    'agent': agent,
+                },
+                'fields': {
+                    'relayed': True
+                }
+            })

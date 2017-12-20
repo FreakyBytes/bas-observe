@@ -228,12 +228,14 @@ class Collector(object):
             if agent not in agent_windows:
                 agent_windows[agent] = datamodel.Window(misc.parse_influxdb_datetime(data['time']), agent)
 
-            # writes values to window
-            setattr(agent_windows[agent], measure, {k: v for k, v in data.items() if k not in ('time', 'project', 'agent')})
-
-            # saves the exact timestamp of the window_length/agent_state measurement, so it can be used to set the 'relayed' flag
-            if agent not in agent_status and measure == 'window_length':
-                agent_status['agent'] = data['time']
+            if measure == 'window_length':
+                # saves the exact timestamp of the window_length/agent_state measurement, so it can be used to set the 'relayed' flag
+                agent_status[agent] = data['time']
+                # sets end time of window
+                agent_windows[agent].end = misc.parse_influxdb_datetime(data['end'])
+            else:
+                # writes values to window
+                setattr(agent_windows[agent], measure, {k: v for k, v in data.items() if k not in ('time', 'project', 'agent')})
 
         # relay the data!
         data_json = [window.to_dict() for window in agent_windows.values()]

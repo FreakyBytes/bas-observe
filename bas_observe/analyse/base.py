@@ -4,6 +4,7 @@ Abstract base implementation of an analyser class
 import logging
 from datetime import datetime
 from collections import OrderedDict
+import json
 
 from ..config import Config
 from .. import misc, datamodel
@@ -13,11 +14,14 @@ class BaseAnalyser(object):
     """Abstract base implementation of an analyser class"""
     LOGGER_NAME = 'ANALYSER'
 
-    def __init__(self, conf: Config):
+    def __init__(self, conf: Config, model: str):
         self.conf = conf
+        self.model_path = model
+
         self.log = None
         self.channel = None
         self.influxdb = None
+        self.model = None
 
         self._init_log()
 
@@ -41,6 +45,16 @@ class BaseAnalyser(object):
 
     def analyse(self):
         raise NotImplemented("analyse function is not implemented")
+
+    def load_model(self):
+        with open(self.model_path, mode='r') as fp:
+            self.model = json.load(fp)
+
+        return self.model
+
+    def save_model(self):
+        with open(self.model_path, mode='w') as fp:
+            json.dump(self.model, fp, encoding='utf-8')
 
     def get_windows(self, start: datetime, end: datetime):
         windows = OrderedDict()  # {time: [window, window, ...], time: [...]}

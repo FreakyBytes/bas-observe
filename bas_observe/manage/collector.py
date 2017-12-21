@@ -100,22 +100,22 @@ class Collector(object):
         # run the loop
         try:
             self.log.info("Start waiting for messages")
-            self.setup_relay_timeout(channel)
+            self.setup_relay_timeout()
             channel.start_consuming()
         except KeyboardInterrupt:
             channel.stop_consuming()
         finally:
             self.conf._amqp_connection.close()
 
-    def setup_relay_timeout(self, channel=None):
+    def setup_relay_timeout(self, connection=None):
         """
         sets up the timeout for checking, if windows can be relayed to the analysers
         e.g. ansynchronously executes `self.relay_messages()`
         """
-        if not channel:
-            channel = self.channel
+        if not connection:
+            connection = self.conf._amqp_connection
 
-        channel.add_timeout(self.conf.relay_timeout, self.relay_messages)
+        connection.add_timeout(self.conf.relay_timeout, self.relay_messages)
 
     def on_agent_message(self, channel, method, properties, body):
         """

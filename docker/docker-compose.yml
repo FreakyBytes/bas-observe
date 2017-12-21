@@ -18,7 +18,7 @@ services:
       - '8086:8086'  # http db interface
       - '4444:4444/udp'  # upd
     volumes:
-      - '/var/lib/influxdb'
+      - '../tmp/influxdb:/var/lib/influxdb'
     environment:
       - "INFLUXDB_REPORTING_DISABLED=true"
       - "INFLUXDB_ADMIN_USER=admin"
@@ -32,7 +32,7 @@ services:
     ports:
       - '3000:3000'
     volumes:
-      - '/var/lib/grafana'
+      - '../tmp/grafana:/var/lib/grafana'
     environment:
       - "GF_INSTALL_PLUGINS=grafana-clock-panel,petrslavotinek-carpetplot-panel,neocat-cal-heatmap-panel,natel-plotly-panel,vonage-status-panel,natel-influx-admin-panel,citilogics-geoloop-panel"
       - "GF_SERVER_ROOT_URL=http://feona.informatik.uni-rostock.de:3000/"

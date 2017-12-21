@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 MEASUREMENTS = ('src_addr', 'dest_addr', 'apci', 'length', 'hop_count', 'priority')
 
 _DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
+_DATETIME_FORMAT_NO_TZ = '%Y-%m-%dT%H:%M:%S'
 _DATETIME_ISO_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 _DATETIME_LEGACY_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -17,7 +18,11 @@ def format_datetime(dt: datetime):
 
 
 def parse_datetime(s: str):
-    return datetime.strptime(s, _DATETIME_FORMAT)
+    try:
+        return datetime.strptime(s, _DATETIME_FORMAT)
+    except ValueError:
+        # let's try without timezone
+        return datetime.strptime(s, _DATETIME_FORMAT_NO_TZ)
 
 
 def parse_influxdb_datetime(s: str):

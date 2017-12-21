@@ -59,13 +59,13 @@ class BaseAnalyser(object):
     def get_windows(self, start: datetime, end: datetime):
         windows = OrderedDict()  # {time: [window, window, ...], time: [...]}
 
-        result = self.get_influxdb().query('SELECT * FROM "window_length" WHERE "project" = \'{project}\' and time > \'{start}\' and time < \'{end}\' ORDER BY time DESC'.format(
+        result = self.get_influxdb().query('SELECT * FROM "agent_status" WHERE "project" = \'{project}\' and time > \'{start}\' and time < \'{end}\' ORDER BY time DESC'.format(
             project=self.conf.project_name,
             start=start.isoformat(),
             end=end.isoformat(),
         ))
 
-        for data in result.get_points('window_length'):
+        for data in result.get_points('agent_status'):
             # construct window datamodel
             self.log.debug(data)
             window = datamodel.Window(

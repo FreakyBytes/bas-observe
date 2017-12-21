@@ -19,7 +19,7 @@ class CollectorWindow(datamodel.Window):
         data = [
             {
                 'time': time_str,
-                'measurement': 'window_length',
+                'measurement': 'agent_status',
                 'tags': {
                     'project': project_name,
                     'agent': self.agent,
@@ -169,13 +169,13 @@ class Collector(object):
         windows = OrderedDict()
         # TODO ajdust query so only unrelayed windows are returned
         result = self.influxdb.query(
-            'SELECT "end", "agent" FROM "window_length" WHERE "project" = \'{project}\' and "relayed" != True GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
+            'SELECT "end", "agent" FROM "agent_status" WHERE "project" = \'{project}\' and "relayed" != True GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
                 limit=10,
                 project=self.conf.project_name,
             )
         )
 
-        for row in result.get_points('window_length'):
+        for row in result.get_points('agent_status'):
             # check if start time is already in the dict
             time = misc.parse_influxdb_datetime(row['time'])
             key = misc.get_uncertain_date_key(windows, time)
@@ -205,7 +205,7 @@ class Collector(object):
         # timestamps might differ slightly and joining multiple measurements
         # causes enourmous tables
         for time, agent in window:
-            for measurement in ('window_length', ) + misc.MEASUREMENTS:
+            for measurement in ('agent_status', ) + misc.MEASUREMENTS:
                 query.append('SELECT * FROM "{measurement}" WHERE "project" = \'{project}\' and "agent" = \'{agent}\' and time = \'{time}\''.format(
                     project=self.conf.project_name,
                     agent=agent,
@@ -225,8 +225,8 @@ class Collector(object):
             if agent not in agent_windows:
                 agent_windows[agent] = datamodel.Window(misc.parse_influxdb_datetime(data['time']), agent)
 
-            if measure == 'window_length':
-                # saves the exact timestamp of the window_length/agent_state measurement, so it can be used to set the 'relayed' flag
+            if measure == 'agent_status':
+                # saves the exact timestamp of the agent_state measurement, so it can be used to set the 'relayed' flag
                 agent_status[agent] = data['time']
                 # sets end time of window
                 agent_windows[agent].end = misc.parse_influxdb_datetime(data['end'])
@@ -242,7 +242,7 @@ class Collector(object):
         for agent, timestamp in agent_status:
             self.get_influxdb().write_points({
                 'time': timestamp,
-                'measurement': 'window_length',
+                'measurement': 'agent_status',
                 'tags': {
                     'project': self.conf.project_name,
                     'agent': agent,

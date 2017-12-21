@@ -148,7 +148,7 @@ class Collector(object):
                 # get a list of all agents in this windows
                 entry_agents = map(lambda x: x[1], entries)
                 # filter the agent_set for those agents, which are already present
-                missing_agents = filter(lambda agent: agent not in entry_agents, self.agent_set)
+                missing_agents = list(filter(lambda agent: agent not in entry_agents, self.agent_set))
 
                 if len(missing_agents) == 0:
                     # all agents are present for this window -> relay it

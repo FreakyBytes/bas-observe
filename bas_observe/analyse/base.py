@@ -67,8 +67,9 @@ class BaseAnalyser(object):
 
         for data in result.get_points('window_length'):
             # construct window datamodel
+            self.log.debug(data)
             window = datamodel.Window(
-                misc.parse_influxdb_datetime(data['start']),
+                misc.parse_influxdb_datetime(data['time']),
                 data['agent'],
                 misc.parse_influxdb_datetime(data['end'])
             )
@@ -102,7 +103,8 @@ class BaseAnalyser(object):
                 )
             )
 
-        result = self.get_influxdb().query(';\n'.join(queries))
+        self.log.debug(f"Execute InfluxDB queries: \"{'; '.join(queries)}\"")
+        result = self.get_influxdb().query('; '.join(queries))
         for resultset in result:
             (measure, group), data = resultset.items()[0]
             data = next(data)

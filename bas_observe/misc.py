@@ -9,6 +9,7 @@ MEASUREMENTS = ('src_addr', 'dest_addr', 'apci', 'length', 'hop_count', 'priorit
 
 _DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 _DATETIME_ISO_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+_DATETIME_LEGACY_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 def format_datetime(dt: datetime):
@@ -20,7 +21,11 @@ def parse_datetime(s: str):
 
 
 def parse_influxdb_datetime(s: str):
-    return datetime.strptime(s, _DATETIME_ISO_FORMAT)
+    try:
+        return datetime.strptime(s, _DATETIME_ISO_FORMAT)
+    except ValueError:
+        # let's try a more legacy date format
+        return datetime.strptime(s, _DATETIME_LEGACY_FORMAT)
 
 
 def get_uncertain_date_key(d: {}, timestamp: datetime, delta: timedelta=timedelta(seconds=2)):

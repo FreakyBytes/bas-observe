@@ -10,9 +10,10 @@ from datetime import datetime, timedelta
 import click
 import baos_knx_parser as knx
 
-from . import config
+from . import config, misc
 from .manage.agent import SimulatedAgent
 from .manage.collector import Collector
+from .analyse.addr import AddrAnalyser
 
 
 @click.group()
@@ -97,9 +98,11 @@ def analyse(ctx):
 
 
 @analyse.command('addr', short_help="start address lookup observation")
+@click.option('-m', '--model', help="Path to the trained model")
 @click.pass_context
-def analyse_addr(ctx):
-    pass
+def analyse_addr(ctx, model):
+    analyser = AddrAnalyser(ctx.obj['CONF'], model)
+    analyser.analyse()
 
 
 @analyse.command('entropy', short_help="start entropy estimation")
@@ -123,9 +126,15 @@ def train(ctx):
 
 
 @train.command('addr', short_help="gathers an address lookup table of a all address that have communicated")
+@click.option('--start', help="Start date for the training data")
+@click.option('--end', default=None, help="End date for the training data")
+@click.option('-m', '--model', help="Path to the outputed model")
 @click.pass_context
-def tain_addr(ctx):
-    pass
+def tain_addr(ctx, start, end, model):
+    analyser = AddrAnalyser(ctx.obj['CONF'], model)
+    start = misc.parse_datetime(start)
+    end = misc.parse_datetime(end)
+    analyser.train(start, end)
 
 
 @train.command('entropy', short_help="determines base line from entropy calculation")

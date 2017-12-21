@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime, timedelta, timezone
+from time import sleep
 import logging
 import json
 
@@ -114,6 +115,7 @@ class SimulatedAgent(BaseAgent):
         for telegram in log:
             if next_window and telegram.timestamp >= next_window:
                 self.submit_windows(windows, next_window)
+                sleep(0.1)
                 windows = None
 
             if not windows:

@@ -17,6 +17,10 @@ def format_datetime(dt: datetime):
     return dt.strftime(_DATETIME_FORMAT)
 
 
+def format_influx_datetime(dt: datetime):
+    return dt.strftime(_DATETIME_LEGACY_FORMAT)
+
+
 def parse_datetime(s: str):
     try:
         return datetime.strptime(s, _DATETIME_FORMAT)
@@ -26,11 +30,14 @@ def parse_datetime(s: str):
 
 
 def parse_influxdb_datetime(s: str):
-    try:
-        return datetime.strptime(s, _DATETIME_ISO_FORMAT)
-    except ValueError:
-        # let's try a more legacy date format
-        return datetime.strptime(s, _DATETIME_LEGACY_FORMAT)
+    for format in (_DATETIME_ISO_FORMAT, _DATETIME_FORMAT_NO_TZ, _DATETIME_LEGACY_FORMAT):
+        try:
+            return datetime.strptime(s, format)
+        except ValueError:
+            pass
+
+    # no format seemed to match
+    raise ValueError("Could not parse '{date}'. Format does not match any expected one.")
 
 
 def get_uncertain_date_key(d: {}, timestamp: datetime, delta: timedelta=timedelta(seconds=2)):

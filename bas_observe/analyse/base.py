@@ -10,6 +10,16 @@ from ..config import Config
 from .. import misc, datamodel
 
 
+class JsonSetEncoder(json.JSONEncoder):
+    """Encodes python sets as JSON lists"""
+    # from https://stackoverflow.com/a/8230505
+
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
+
+
 class BaseAnalyser(object):
     """Abstract base implementation of an analyser class"""
     LOGGER_NAME = 'ANALYSER'
@@ -54,7 +64,7 @@ class BaseAnalyser(object):
 
     def save_model(self):
         with open(self.model_path, mode='w') as fp:
-            json.dump(self.model, fp, encoding='utf-8')
+            json.dump(self.model, fp, cls=JsonSetEncoder)
 
     def get_windows(self, start: datetime, end: datetime):
         windows = OrderedDict()  # {time: [window, window, ...], time: [...]}
@@ -80,13 +90,16 @@ class BaseAnalyser(object):
             key = misc.get_uncertain_date_key(windows, window.start)
             if not key:
                 windows[window.start] = [window]
+                self.log.info(f"window key \"{window.start}\" does not exist yet. Gets created")
             else:
                 # entry already exists, so add this row as well
                 windows[key].append(window)
+
                 # recalc key timestamp
                 new_key = datetime.fromtimestamp(sum([e.start.timestamp() for e in windows[key]]) / len(windows[key]))
-                windows[new_key] = windows[key]
-                del windows[key]
+                self.log.info(f"File window into \"{key}\". Updated key is now \"{new_key}\"")
+
+                windows[new_key] = windows.pop(key)
 
         return windows
 
@@ -106,6 +119,11 @@ class BaseAnalyser(object):
         self.log.debug(f"Execute InfluxDB queries: \"{'; '.join(queries)}\"")
         result = self.get_influxdb().query('; '.join(queries))
         for resultset in result:
+            if len(resultset.items()) <= 0:
+                # no items in resultset
+                self.log.warn(f"Got empty resultset for InfluxDB query\"{queries[result.index(resultset)]}\"")
+                continue
+
             (measure, group), data = resultset.items()[0]
             data = next(data)
             # writes values to window

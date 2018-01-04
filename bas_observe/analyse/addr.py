@@ -17,14 +17,23 @@ class AddrAnalyser(BaseAnalyser):
         self.model = {}  # {agent: {src: set(addrs...), dest: set(addrs...)}}
 
         # get the training data
-        for windows in self.get_windows(start, end).values():
+        window_dict = self.get_windows(start, end)
+        self.log.debug(window_dict)
+        for windows in window_dict.values():
             for window in windows:
                 if window.agent not in self.model:
                     # bootstrap the model for this agent
+                    self.log.debug(f"Bootstrap model entry for agent \"{window.agent}\"")
                     self.model[window.agent] = {'src': set(), 'dest': set()}
 
-                self.model[window.agent]['src'] = self.model[window.agent]['src'].union(window.src_addr.keys())
-                self.model[window.agent]['dest'] = self.model[window.agent]['dest'].union(window.dest_addr.keys())
+                src = [addr for addr, count in window.src_addr.items() if count and count > 0]
+                dest = [addr for addr, count in window.dest_addr.items() if count and count > 0]
+
+                self.log.debug(f"Agent {window.agent}, found source addrs: \"{','.join(src)}\"")
+                self.log.debug(f"Agent {window.agent}, found destination addrs: \"{','.join(dest)}\"")
+
+                self.model[window.agent]['src'] = self.model[window.agent]['src'].union(src)
+                self.model[window.agent]['dest'] = self.model[window.agent]['dest'].union(dest)
 
         self.save_model()
 

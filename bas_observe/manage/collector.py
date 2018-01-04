@@ -188,8 +188,7 @@ class Collector(object):
                 windows[key].append((time, row['agent']))
                 # recalc key timestamp
                 new_key = datetime.fromtimestamp(sum([e[0].timestamp() for e in windows[key]]) / len(windows[key]))
-                windows[new_key] = windows[key]
-                del windows[key]
+                windows[new_key] = windows.pop(key)
 
         return windows
 

@@ -61,8 +61,8 @@ class BaseAnalyser(object):
 
         result = self.get_influxdb().query('SELECT * FROM "agent_status" WHERE "project" = \'{project}\' and time > \'{start}\' and time < \'{end}\' ORDER BY time DESC'.format(
             project=self.conf.project_name,
-            start=start.isoformat(),
-            end=end.isoformat(),
+            start=misc.format_influx_datetime(start),
+            end=misc.format_influx_datetime(end),
         ))
 
         for data in result.get_points('agent_status'):
@@ -98,7 +98,7 @@ class BaseAnalyser(object):
                 'SELECT * FROM "{measurement}" WHERE "project" = \'{project}\' and "agent" = \'{agent}\' and time = \'{time}\' LIMIT 1'.format(
                     project=self.conf.project_name,
                     agent=window.agent,
-                    time=window.start.isoformat(),
+                    time=misc.format_influx_datetime(window.start),
                     measurement=measure,
                 )
             )

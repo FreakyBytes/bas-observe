@@ -213,7 +213,11 @@ class Collector(object):
                     measurement=measurement,
                 ))
 
-        result = self.influxdb.query('; '.join(query))
+        try:
+            result = self.influxdb.query('; '.join(query))
+        except:
+            self.log.warn(f"InfluxDB query failed:{ '; '.join(query)}")
+            return
 
         agent_status = {}
         for resultset in result:

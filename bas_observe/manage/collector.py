@@ -171,7 +171,7 @@ class Collector(object):
         # TODO ajdust query so only unrelayed windows are returned
         result = self.influxdb.query(
             'SELECT "end", "agent" FROM "agent_status" WHERE "project" = \'{project}\' and "relayed" = false GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
-                limit=10,
+                limit=50,
                 project=self.conf.project_name,
             )
         )
@@ -221,6 +221,11 @@ class Collector(object):
 
         agent_status = {}
         for resultset in result:
+            if len(resultset.items()) <= 0:
+                # no items in resultset
+                self.log.warn(f"Got empty resultset for InfluxDB query\"{query[result.index(resultset)]}\"")
+                continue
+
             # iterate over the different queries
             (measure, nan), data = resultset.items()[0]
             data = next(data)  # only contains one item, so we can simply pop it without heavy iteration

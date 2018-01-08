@@ -54,7 +54,6 @@ class AddrAnalyser(BaseAnalyser):
         # run the loop
         try:
             self.log.info("Start waiting for messages")
-            self.setup_relay_timeout(channel)
             channel.start_consuming()
         except KeyboardInterrupt:
             channel.stop_consuming()

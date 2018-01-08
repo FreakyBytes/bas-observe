@@ -77,12 +77,18 @@ class AddrAnalyser(BaseAnalyser):
                 unknown_dest_telegrams = 0
 
                 for addr, amount in window.src_addr.items():
+                    if not amount:
+                        continue
+
                     if addr not in agent_model['src']:
                         unknown_src_addr += 1
                         unknown_src_telegrams += amount
                         self.log.warn(f"Found {amount} packets from unknown source address {addr} on agent {window.agent}")
 
                 for addr, amount in window.dest_addr.items():
+                    if not amount:
+                        continue
+                        
                     if addr not in agent_model['dest']:
                         unknown_dest_addr += 1
                         unknown_dest_telegrams += amount

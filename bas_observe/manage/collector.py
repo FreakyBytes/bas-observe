@@ -28,6 +28,7 @@ class CollectorWindow(datamodel.Window):
                     # 'end': misc.format_datetime(self.end),
                     'end': misc.format_influx_datetime(self.end),
                     'length': (self.end - self.start).seconds,
+                    'relayed': False,
                 }
             }
         ]
@@ -169,7 +170,7 @@ class Collector(object):
         windows = OrderedDict()
         # TODO ajdust query so only unrelayed windows are returned
         result = self.influxdb.query(
-            'SELECT "end", "agent" FROM "agent_status" WHERE "project" = \'{project}\' and "relayed" != True GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
+            'SELECT "end", "agent" FROM "agent_status" WHERE "project" = \'{project}\' and "relayed" = false GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
                 limit=10,
                 project=self.conf.project_name,
             )
@@ -238,12 +239,13 @@ class Collector(object):
                 setattr(agent_windows[agent], measure, {k: v for k, v in data.items() if k not in ('time', 'project', 'agent')})
 
         # relay the data!
-        data_json = [window.to_dict() for window in agent_windows.values()]
+        data_json = json.dumps([window.to_dict() for window in agent_windows.values()])
         self.get_channel().basic_publish(exchange=self.conf.name_exchange_analyser, routing_key='', body=data_json)
 
         # set the relayed timestamp
-        for agent, timestamp in agent_status:
-            self.get_influxdb().write_points({
+        influxdb_data = []
+        for agent, timestamp in agent_status.items():
+            influxdb_data.append({
                 'time': timestamp,
                 'measurement': 'agent_status',
                 'tags': {
@@ -254,3 +256,5 @@ class Collector(object):
                     'relayed': True
                 }
             })
+
+        self.get_influxdb().write_points(influxdb_data)

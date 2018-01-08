@@ -15,7 +15,7 @@ class CollectorWindow(datamodel.Window):
 
     def influxdb_json(self, project_name: str) -> {}:
         # time_str = misc.format_datetime(self.start)
-        time_str = self.start.isoformat()
+        time_str = misc.format_influx_datetime(self.start)
         data = [
             {
                 'time': time_str,
@@ -26,7 +26,7 @@ class CollectorWindow(datamodel.Window):
                 },
                 'fields': {
                     # 'end': misc.format_datetime(self.end),
-                    'end': self.end.isoformat(),
+                    'end': misc.format_influx_datetime(self.end),
                     'length': (self.end - self.start).seconds,
                 }
             }
@@ -208,7 +208,7 @@ class Collector(object):
                 query.append('SELECT * FROM "{measurement}" WHERE "project" = \'{project}\' and "agent" = \'{agent}\' and time = \'{time}\''.format(
                     project=self.conf.project_name,
                     agent=agent,
-                    time=time.isoformat(),
+                    time=misc.format_influx_datetime(time),
                     measurement=measurement,
                 ))
 

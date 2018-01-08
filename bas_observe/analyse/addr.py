@@ -64,7 +64,7 @@ class AddrAnalyser(BaseAnalyser):
 
         try:
             windows = [datamodel.Window.from_dict(data_entry) for data_entry in json.loads(body)]
-            self.log.debug(f"Got new message from collector with {len(windows)} windows")
+            self.log.info(f"Got new message from collector with {len(windows)} windows")
 
             data = []
             for window in windows:
@@ -88,7 +88,7 @@ class AddrAnalyser(BaseAnalyser):
                 for addr, amount in window.dest_addr.items():
                     if not amount:
                         continue
-                        
+
                     if addr not in agent_model['dest']:
                         unknown_dest_addr += 1
                         unknown_dest_telegrams += amount

@@ -5,6 +5,9 @@ import logging
 from datetime import datetime
 from collections import OrderedDict
 import json
+import os.path
+
+from sklearn.externals import joblib
 
 from ..config import Config
 from .. import misc, datamodel
@@ -130,3 +133,48 @@ class BaseAnalyser(object):
             setattr(window, measure, {k: v for k, v in data.items() if k not in ('time', 'project', 'agent')})
 
         return window
+
+
+class BaseSkLearnAnalyser(BaseAnalyser):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # cache for de-pickled model files
+        self._model_cache = {}
+
+    def get_model_for_agent(self, agent):
+        # check if a model exists for this agent
+        if agent not in self.model:
+            # model is neither know nor loaded
+
+            model = self.create_new_model()
+            # store some refs
+            self.model[agent] = f'{self.conf.project_name}-{self.__class__.__name__}-{agent}.joblib'
+            self._model_cache[agent] = model
+
+            return model
+        elif agent in self._model_cache:
+            # model is known and loaded
+            return self._model_cache[agent]
+        else:
+            # model is known but not loaded
+            try:
+                model = joblib.load(os.path.join(os.path.dirname(self.model_path), self.model[agent]))
+            except Exception as e:
+                self.log.error(f"Error while loading sklearn model {self.model[agent]}. Generating new one.")
+                model = self.create_new_model()
+
+            self._model_cache[agent] = model
+            return model
+
+    def create_new_model(self):
+        raise NotImplementedError("create_new_model is not implemented.")
+
+    def save_model(self):
+        # extend save_model to also save the LoF models
+        for agent, filename in self.model.items():
+            if agent in self._model_cache:
+                joblib.dump(self._model_cache[agent], os.path.join(os.path.dirname(self.model_path), self.model[agent]))
+
+        # save the json model
+        super().save_model()

@@ -142,6 +142,9 @@ class BaseSkLearnAnalyser(BaseAnalyser):
         # cache for de-pickled model files
         self._model_cache = {}
 
+    def get_world_model(self):
+        return self.get_model_for_agent('__world_model__')
+
     def get_model_for_agent(self, agent):
         # check if a model exists for this agent
         if agent not in self.model:

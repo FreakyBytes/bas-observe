@@ -116,7 +116,7 @@ def analyse_entropy(ctx):
 @click.option('-m', '--model', help="Path to the trained model")
 @click.pass_context
 def analyse_lof(ctx, model):
-    analyser = LofAnalyser(ctx.obj['conf'], model)
+    analyser = LofAnalyser(ctx.obj['CONF'], model)
     analyser.analyse()
 
 

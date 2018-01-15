@@ -12,7 +12,10 @@ from . import datamodel
 _APCI_KEYS = list(knx.APCI(None)._attr_map.keys())
 
 
-def vectorise_knx_addr(addr: knx.KnxAddress):
+def vectorise_knx_addr(addr: (knx.KnxAddress, str)):
+    if isinstance(addr, str):
+        addr = knx.KnxAddress(str=addr, group='/' in addr)
+
     return np.array([int(b) for b in '{:0>16b}'.format(int(addr))])
 
 
@@ -25,7 +28,7 @@ def vectorise_knx_addr_dict(addrs):
     size = 0  # amount against which we normalise the vector
 
     for addr, amount in addrs.items():
-        if amount > 0:
+        if amount and amount > 0:
             vects.append(vectorise_knx_addr(addr) * amount)
             size += amount
 
@@ -44,8 +47,8 @@ def vectorise_apci_dict(apcis):
     vects = []
     size = 0
 
-    for apci, amount in apcis.itmes():
-        if amount > 0:
+    for apci, amount in apcis.items():
+        if amount and amount > 0:
             vects.append(vectorise_apci(apci) * amount)
             size += amount
 
@@ -68,14 +71,16 @@ def vectorise_time_of_year(dt: datetime):
 
 
 def _priority_to_int(prio: knx.TelegramPriority):
-    if prio == knx.TelegramPriority.LOW:
+    if prio == knx.TelegramPriority.LOW or prio == 'LOW':
         return 0
-    elif prio == knx.TelegramPriority.NORMAL:
+    elif prio == knx.TelegramPriority.NORMAL or prio == 'NORMAL':
         return 1
-    elif prio == knx.TelegramPriority.URGENT:
+    elif prio == knx.TelegramPriority.URGENT or prio == 'URGENT':
         return 2
-    elif prio == knx.TelegramPriority.SYSTEM:
+    elif prio == knx.TelegramPriority.SYSTEM or prio == 'SYSTEM':
         return 3
+    else:
+        raise TypeError(f"Unknown KNX Priority {prio} ({type(prio)})")
 
 
 def vectorise_priority_dict(prios):
@@ -101,7 +106,7 @@ def vectorise_hop_count_dict(hop_counts: {}):
     size = 0  # size against which we normalise
 
     for hop_count, amount in hop_counts.items():
-        vect[hop_count] += amount if amount else 0
+        vect[int(hop_count)] += amount if amount else 0
         size += amount if amount else 0
 
     return np.array(vect) / size
@@ -118,7 +123,7 @@ def vectorise_payload_length_dict(lengths, buckets=10):
     size = 0
 
     for length, amount in lengths.items():
-        bucket = round((length / 255) * buckets)
+        bucket = round((int(length) / 255) * buckets)
         vect[bucket] += amount if amount else 0
         size += amount if amount else 0
 

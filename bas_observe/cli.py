@@ -141,15 +141,24 @@ def tain_addr(ctx, start, end, model):
 
 
 @train.command('entropy', short_help="determines base line from entropy calculation")
+@click.option('--start', help="Start date for the training data")
+@click.option('--end', default=None, help="End date for the training data")
+@click.option('-m', '--model', help="Path to the outputed model")
 @click.pass_context
-def train_entropy():
+def train_entropy(ctx, start, end, model):
     pass
 
 
 @train.command('lof')
+@click.option('--start', help="Start date for the training data")
+@click.option('--end', default=None, help="End date for the training data")
+@click.option('-m', '--model', help="Path to the outputed model")
 @click.pass_context
-def train_lof():
-    pass
+def train_lof(ctx, start, end, model):
+    analyser = LofAnalyser(ctx.obj['CONF'], model)
+    start = misc.parse_datetime(start)
+    end = misc.parse_datetime(end)
+    analyser.train(start, end)
 
 
 def run_cli():

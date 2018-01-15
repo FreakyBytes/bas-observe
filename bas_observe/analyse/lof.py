@@ -3,6 +3,7 @@ Analyser module, which utilizes the Local Outlier Factor to determine
 """
 from datetime import datetime
 import json
+import pandas as pd
 
 from sklearn.neighbors import LocalOutlierFactor
 import baos_knx_parser as knx
@@ -18,7 +19,27 @@ class LofAnalyser(BaseSkLearnAnalyser):
     LOGGER_NAME = 'LOF ANALYSER'
 
     def train(self, start: datetime, end: datetime):
-        pass
+        try:
+            self.load_model()
+        except:
+            self.model = {}
+
+        sys_X = pd.DataFrame()
+        agent_X = {}
+
+        window_dict = self.get_windows(start, end)
+        for windows in window_dict.values():
+            for window in windows:
+                vect = [vectoriser.vectorise_window(window)]
+                sys_X = sys_X.append(vect)
+                agent_X[window.agent] = agent_X.get(window.agent, pd.DataFrame()).append(vect)
+
+        # train all the models!
+        self.get_world_model().fit(sys_X)
+        for agent, X in agent_X.items():
+            self.get_model_for_agent(agent).fit(X)
+
+        self.save_model()
 
     def analyse(self):
         # load the model
@@ -55,30 +76,30 @@ class LofAnalyser(BaseSkLearnAnalyser):
             self.log.info(f"Got new message from collector with {len(windows)} windows")
 
             data = []
-            world_model = self.get_world_model()
-            for window in windows:
-                vect = vectoriser.vectorise_window(window)
+            # fit all windows to the world model
+            vects = [vectoriser.vectorise_window(window) for window in windows]
+            outlier_world = self.get_world_model().fit_predict(vects)
 
+            for window, vect, outlier in zip(windows, vects, outlier_world):
                 # fit/predict it against the models
-                outlier_local, = self.get_model_for_agent(window.agent).fit_predict([vect])
-                outlier_world, = world_model.fit_predict([vect])
+                # outlier_local, = self.get_model_for_agent(window.agent).fit_predict([vect])
 
                 # -1 mean outlier / 1 is an inlier
                 # we want to count the amount of outliers, so transform to
                 # 1 means outlier / 0 menas inlier
-                outlier_local = 1 if outlier_local < 0 else 0
-                outlier_world = 1 if outlier_world < 0 else 0
+                # outlier_local = 1 if outlier_local < 0 else 0
+                outlier = 1 if outlier < 0 else 0
 
                 data.append({
                     'time': misc.format_influx_datetime(window.start),
                     'measurement': 'lof',
                     'tags': {
-                        'project': window.project_name,
+                        'project': self.conf.project_name,
                         'agent': window.agent,
                     },
                     'fields': {
-                        'local': outlier_local,
-                        'world': outlier_world,
+                        # 'local': outlier_local,
+                        'world': outlier,
                     }
                 })
 

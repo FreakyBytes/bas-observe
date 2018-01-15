@@ -14,6 +14,7 @@ from . import config, misc
 from .manage.agent import SimulatedAgent
 from .manage.collector import Collector
 from .analyse.addr import AddrAnalyser
+from .analyse.lof import LofAnalyser
 
 
 @click.group()
@@ -112,9 +113,11 @@ def analyse_entropy(ctx):
 
 
 @analyse.command('lof', short_help="start local outlier factor observation")
+@click.option('-m', '--model', help="Path to the trained model")
 @click.pass_context
-def analyse_lof(ctx):
-    pass
+def analyse_lof(ctx, model):
+    analyser = LofAnalyser(ctx.obj['conf'], model)
+    analyser.analyse()
 
 
 # -----------------------------------------------------------------------------

@@ -32,7 +32,10 @@ def vectorise_knx_addr_dict(addrs):
             vects.append(vectorise_knx_addr(addr) * amount)
             size += amount
 
-    return np.sum(vects, axis=0) / size
+    if size == 0:
+        return np.array([0] * 16)
+    else:
+        return np.sum(vects, axis=0) / size
 
 
 def vectorise_apci(apci: knx.APCI):
@@ -52,7 +55,10 @@ def vectorise_apci_dict(apcis):
             vects.append(vectorise_apci(apci) * amount)
             size += amount
 
-    return np.sum(vects, axis=0) / size
+    if size == 0:
+        return np.array([0] * 16)
+    else:
+        return np.sum(vects, axis=0) / size
 
 
 def vectorise_time_of_week(dt: datetime):
@@ -91,7 +97,10 @@ def vectorise_priority_dict(prios):
         vect[_priority_to_int(prio)] += amount if amount else 0
         size += amount if amount else 0
 
-    return np.array(vect) / size
+    if size == 0:
+        return np.array([0] * 4)
+    else:
+        return np.array(vect) / size
 
 
 def vectorise_hop_count(hop_count: int):
@@ -109,7 +118,10 @@ def vectorise_hop_count_dict(hop_counts: {}):
         vect[int(hop_count)] += amount if amount else 0
         size += amount if amount else 0
 
-    return np.array(vect) / size
+    if size == 0:
+        return np.array([0] * 7)
+    else:
+        return np.array(vect) / size
 
 
 def vectorise_payload_length(length: int):
@@ -127,16 +139,23 @@ def vectorise_payload_length_dict(lengths, buckets=10):
         vect[bucket] += amount if amount else 0
         size += amount if amount else 0
 
-    return np.array(vect) / size
+    if size == 0:
+        return np.array([0] * buckets)
+    else:
+        return np.array(vect) / size
 
 
 def vectorise_window(window: datamodel.Window):
-    return np.concatenate((
-        vectorise_time_of_year(window.start),
-        vectorise_knx_addr_dict(window.src_addr),
-        vectorise_knx_addr_dict(window.dest_addr),
-        vectorise_priority_dict(window.priority),
-        vectorise_hop_count_dict(window.hop_count),
-        vectorise_payload_length_dict(window.length),
-        vectorise_apci_dict(window.apci),
-    ), axis=0)
+    try:
+        return np.concatenate((                                 # size:
+            vectorise_time_of_year(window.start),               # 1
+            vectorise_knx_addr_dict(window.src_addr),           # 16
+            vectorise_knx_addr_dict(window.dest_addr),          # 16
+            vectorise_priority_dict(window.priority),           # 4
+            vectorise_hop_count_dict(window.hop_count),         # 7
+            vectorise_payload_length_dict(window.length),       # 10 (buckets)
+            vectorise_apci_dict(window.apci),                   # 37
+        ), axis=0)
+    except ValueError as e:
+        print(window.to_dict())
+        raise e

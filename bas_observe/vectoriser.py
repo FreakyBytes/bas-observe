@@ -33,7 +33,7 @@ def vectorise_knx_addr_dict(addrs):
             size += amount
 
     if size == 0:
-        return np.array([0] * 16)
+        return np.zeros(16)
     else:
         return np.sum(vects, axis=0) / size
 
@@ -56,7 +56,7 @@ def vectorise_apci_dict(apcis):
             size += amount
 
     if size == 0:
-        return np.array([0] * 16)
+        return np.zeros(len(_APCI_KEYS))
     else:
         return np.sum(vects, axis=0) / size
 
@@ -98,7 +98,7 @@ def vectorise_priority_dict(prios):
         size += amount if amount else 0
 
     if size == 0:
-        return np.array([0] * 4)
+        return np.zeros(4)
     else:
         return np.array(vect) / size
 
@@ -119,7 +119,7 @@ def vectorise_hop_count_dict(hop_counts: {}):
         size += amount if amount else 0
 
     if size == 0:
-        return np.array([0] * 7)
+        return np.zeros(7)
     else:
         return np.array(vect) / size
 
@@ -140,7 +140,7 @@ def vectorise_payload_length_dict(lengths, buckets=10):
         size += amount if amount else 0
 
     if size == 0:
-        return np.array([0] * buckets)
+        return np.zeros(buckets)
     else:
         return np.array(vect) / size
 

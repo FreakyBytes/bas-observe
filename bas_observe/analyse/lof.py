@@ -77,7 +77,7 @@ class LofAnalyser(BaseSkLearnAnalyser):
 
             data = []
             # fit all windows to the world model
-            vects = [vectoriser.vectorise_window(window) for window in windows]
+            vects = pd.DataFrame([vectoriser.vectorise_window(window) for window in windows])
             self.log.debug(vects)
             outlier_world = self.get_world_model()._predict(vects)  # fit_predict(vects)
 

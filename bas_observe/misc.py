@@ -44,6 +44,7 @@ def get_uncertain_date_key(d: {}, timestamp: datetime, delta: timedelta=timedelt
     """Returns the first dict key, which lies within delta around the timestamp
     Otherwise returns None
     """
+    # TODO actually return the closest one!
     for key in d.keys():
         if abs(key - timestamp) < delta:
             return key

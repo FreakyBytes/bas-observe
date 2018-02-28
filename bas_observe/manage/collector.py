@@ -168,7 +168,6 @@ class Collector(object):
         Gets the latest unrelayed window messages ordered around a mean timestamp
         """
         windows = OrderedDict()
-        # TODO ajdust query so only unrelayed windows are returned
         result = self.influxdb.query(
             'SELECT "end", "agent" FROM "agent_status" WHERE "project" = \'{project}\' and "relayed" = false GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
                 limit=50,

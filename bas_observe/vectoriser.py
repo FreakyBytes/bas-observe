@@ -148,7 +148,8 @@ def vectorise_payload_length_dict(lengths, buckets=10):
 def vectorise_window(window: datamodel.Window):
     try:
         return np.concatenate((                                 # size:
-            vectorise_time_of_year(window.start),               # 1
+            # vectorise_time_of_year(window.start),               # 1
+            vectorise_time_of_week(window.start),               # 1
             vectorise_knx_addr_dict(window.src_addr),           # 16
             vectorise_knx_addr_dict(window.dest_addr),          # 16
             vectorise_priority_dict(window.priority),           # 4

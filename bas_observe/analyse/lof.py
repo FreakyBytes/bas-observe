@@ -4,6 +4,7 @@ Analyser module, which utilizes the Local Outlier Factor to determine
 from datetime import datetime
 import json
 import pandas as pd
+import numpy as np
 
 from sklearn.neighbors import LocalOutlierFactor
 import baos_knx_parser as knx
@@ -67,7 +68,7 @@ class LofAnalyser(BaseSkLearnAnalyser):
             self.save_model()
 
     def create_new_model(self):
-        return LocalOutlierFactor(n_neighbors=20, algorithm='auto', p=2, contamination=0.1)
+        return LocalOutlierFactor(n_neighbors=20, algorithm='auto', p=2, contamination=0.1, n_jobs=-1)
 
     def on_message(self, channel, method, properties, body):
 
@@ -79,17 +80,23 @@ class LofAnalyser(BaseSkLearnAnalyser):
             # fit all windows to the world model
             vects = pd.DataFrame([vectoriser.vectorise_window(window) for window in windows])
             self.log.debug(vects)
-            outlier_world = self.get_world_model()._predict(vects)  # fit_predict(vects)
 
-            for window, vect, outlier in zip(windows, vects, outlier_world):
-                # fit/predict it against the models
-                # outlier_local, = self.get_model_for_agent(window.agent).fit_predict([vect])
+            # note: this is the opposite of the Local Outlier Factor
+            # cf. https://github.com/scikit-learn/scikit-learn/blob/a24c8b46/sklearn/neighbors/lof.py#L233
+            lof_world = self.get_world_model()._decision_function(vects)
+            outlier_world = np.ones(vects.shape[0])
+            outlier_world[lof_world <= self.get_world_model().threshold_] = -1
 
-                # -1 mean outlier / 1 is an inlier
+            # outlier_world = self.get_world_model()._predict(vects)  # fit_predict(vects)
+
+            for window, vect, outlier, lof in zip(windows, vects, outlier_world, lof_world):
+                # -1 means outlier / 1 is an inlier
                 # we want to count the amount of outliers, so transform to
-                # 1 means outlier / 0 menas inlier
-                # outlier_local = 1 if outlier_local < 0 else 0
-                outlier = 1 if outlier < 0 else 0
+                # 1 means outlier / 0 means inlier
+
+                # predict it against the models
+                lof_local, = self.get_model_for_agent(window.agent)._decision_function([vect])
+                outlier_local = 1 if lof_local <= self.get_model_for_agent(window.agent).threshold_ else -1
 
                 data.append({
                     'time': misc.format_influx_datetime(window.start),
@@ -99,8 +106,12 @@ class LofAnalyser(BaseSkLearnAnalyser):
                         'agent': window.agent,
                     },
                     'fields': {
-                        # 'local': outlier_local,
-                        'world': outlier,
+                        'local': 1 if outlier_local < 0 else 0,
+                        'local_inlier': 0 if outlier_local < 0 else 1,
+                        'local_lof': lof_local * -1,
+                        'world': 1 if outlier < 0 else 0,
+                        'world_inlier': 0 if outlier < 0 else 1,
+                        'world_lof': lof * -1,
                     }
                 })
 

@@ -2,6 +2,7 @@
 This module contains functions to help vectorise (parts of) the window datamodel
 """
 from datetime import datetime, timedelta
+import math
 import numpy as np
 
 import baos_knx_parser as knx
@@ -135,7 +136,7 @@ def vectorise_payload_length_dict(lengths, buckets=10):
     size = 0
 
     for length, amount in lengths.items():
-        bucket = round((int(length) / 255) * buckets)
+        bucket = math.floor((int(length) / 255) * buckets)
         vect[bucket] += amount if amount else 0
         size += amount if amount else 0
 

@@ -95,7 +95,7 @@ class AddrAnalyser(BaseAnalyser):
                         self.log.warn(f"Found {amount} packets to unknown destination address {addr} on agent {window.agent}")
 
                 data.append({
-                    'time': window.start,
+                    'time': misc.format_influx_datetime(window.start),
                     'measurement': 'unknown_addr',
                     'tags': {
                         'project': self.conf.project_name,

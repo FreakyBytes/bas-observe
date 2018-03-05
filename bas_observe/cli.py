@@ -15,6 +15,7 @@ from .manage.agent import SimulatedAgent
 from .manage.collector import Collector
 from .analyse.addr import AddrAnalyser
 from .analyse.lof import LofAnalyser
+from .analyse.entropy import EntropyAnalyser
 
 
 @click.group()
@@ -25,9 +26,7 @@ from .analyse.lof import LofAnalyser
 @click.option('--influxdb', default='http://localhost:8086/bob', help="URL to the InfluxDB server")
 @click.pass_context
 def cli(ctx, log_file, log_level, project, amqp, influxdb):
-    """
-    Bas OBserve (bob)
-    """
+    """Bas OBserve (bob)."""
     config.setup_logging(level=log_level, logfile=log_file)
     log = logging.getLogger('CLI')  # re initiate logger
     ctx.obj['LOG'] = log
@@ -107,9 +106,11 @@ def analyse_addr(ctx, model):
 
 
 @analyse.command('entropy', short_help="start entropy estimation")
+@click.option('-m', '--model', help="Path to the trained model")
 @click.pass_context
-def analyse_entropy(ctx):
-    pass
+def analyse_entropy(ctx, model):
+    analyser = EntropyAnalyser(ctx.obj['CONF'], model)
+    analyser.analyse()
 
 
 @analyse.command('lof', short_help="start local outlier factor observation")
@@ -146,7 +147,10 @@ def tain_addr(ctx, start, end, model):
 @click.option('-m', '--model', help="Path to the outputed model")
 @click.pass_context
 def train_entropy(ctx, start, end, model):
-    pass
+    analyser = LofAnalyser(ctx.obj['CONF'], model)
+    start = misc.parse_datetime(start)
+    end = misc.parse_datetime(end)
+    analyser.train(start, end)
 
 
 @train.command('lof')

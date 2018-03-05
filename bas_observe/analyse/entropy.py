@@ -13,7 +13,7 @@ from .base import BaseAnalyser
 from .. import datamodel, misc, vectoriser
 
 
-class AddrAnalyser(BaseAnalyser):
+class EntropyAnalyser(BaseAnalyser):
     LOGGER_NAME = 'ENTROPY ANALYSER'
     NUM_TIME_BUCKETS = 7 * 24  # one for every hour in the week (actual number of buckets is double this)
 

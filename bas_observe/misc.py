@@ -3,6 +3,7 @@ Package containing misc helper functions
 """
 
 from datetime import datetime, timedelta
+import math
 
 
 MEASUREMENTS = ('src_addr', 'dest_addr', 'apci', 'length', 'hop_count', 'priority')
@@ -44,9 +45,12 @@ def get_uncertain_date_key(d: {}, timestamp: datetime, delta: timedelta=timedelt
     """Returns the first dict key, which lies within delta around the timestamp
     Otherwise returns None
     """
-    # TODO actually return the closest one!
-    for key in d.keys():
-        if abs(key - timestamp) < delta:
-            return key
+    min_key = None
+    min_delta = math.inf
 
-    return None
+    for key in d.keys():
+        if abs(key - timestamp) < delta and abs(key - timestamp) < min_delta:
+            min_key = key
+            min_delta = abs(key - timestamp)
+
+    return min_key

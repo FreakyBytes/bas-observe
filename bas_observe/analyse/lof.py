@@ -68,7 +68,7 @@ class LofAnalyser(BaseSkLearnAnalyser):
             self.save_model()
 
     def create_new_model(self):
-        return LocalOutlierFactor(n_neighbors=20, algorithm='auto', p=2, contamination=0.1, n_jobs=-1)
+        return LocalOutlierFactor(n_neighbors=100, algorithm='auto', p=2, contamination=0.1, n_jobs=-1)
 
     def on_message(self, channel, method, properties, body):
 

@@ -42,6 +42,7 @@ def cli(ctx, log_file, log_level, project, amqp, influxdb):
 
 @cli.command('simulate', short_help="simulates agents by injecting packets from a log file")
 @click.argument('dump')
+@click.option('-f', '--dump-format', default='old', type=click.Choice(['old', 'new']))
 @click.option('-a', '--agent', nargs=3, type=(str, int, int), multiple=True,
               help="defines an agent filter with <AGENT_NAME ADDR_FILTER ADDR_FILTER_MASK>")
 @click.option('--length', type=int, default=10,
@@ -53,7 +54,7 @@ def cli(ctx, log_file, log_level, project, amqp, influxdb):
 @click.option('--end', type=datetime, default=None,
               help="Timestamp where to stop parsing the log")
 @click.pass_context
-def simulate(ctx, dump, agent, length, limit, start, end):
+def simulate(ctx, dump, dump_format, agent, length, limit, start, end):
     log = ctx.obj['LOG']
     agent_filter = {}
     for a in agent:
@@ -70,6 +71,7 @@ def simulate(ctx, dump, agent, length, limit, start, end):
     agent = SimulatedAgent(
         ctx.obj['CONF'],
         dump,
+        log_format=dump_format,
         agent_filter=agent_filter,
         window_length=timedelta(seconds=length) if length > 0 else None,
         start=start,

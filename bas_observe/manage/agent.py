@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from time import sleep
 import logging
 import json
+import binascii
 
 import baos_knx_parser as knx
 
@@ -60,12 +61,13 @@ class SimulatedAgent(BaseAgent):
     """
     LOGGER_NAME = 'SIM-AGENT'
 
-    def __init__(self, conf: Config, log_source: str, agent_filter: {knx.bitmask.Bitmask: str}, window_length: timedelta=timedelta(seconds=10), start: datetime=None, end: datetime=None, limit: int=None):
-        """Creates a new simulated agent
+    def __init__(self, conf: Config, log_source: str, agent_filter: {knx.bitmask.Bitmask: str}, log_format: str='old', window_length: timedelta=timedelta(seconds=10), start: datetime=None, end: datetime=None, limit: int=None):
+        """Creates a new simulated agent.
 
         Attributes:
             conf            Config object
             log_source      Path or File-like object to the knx_dump log file
+            log_format      Name of the log file's format (either old or new)
             agent_filter    Filter determining which addresses can be read by
                             different simulated agents.
                             In the format:
@@ -90,6 +92,7 @@ class SimulatedAgent(BaseAgent):
         super().__init__(conf)
 
         self.log_source = log_source
+        self.log_format = log_format
         self.agent_filter = agent_filter
         self.agent_set = set(agent_filter.values())
         self.window_length = window_length
@@ -107,7 +110,12 @@ class SimulatedAgent(BaseAgent):
         self.get_channel()
 
         # get generator with telegrams
-        log = self.read_log()
+        if self.log_format == 'old':
+            log = self.read_log()
+        elif self.log_format == 'new':
+            log = self.read_new_log()
+        else:
+            raise KeyError(f"Unknown log format: {self.log_format}")
 
         # TODO improve window submission situation. Last window might not be submitted correctly
         next_window = None  # border at which a new frame is started
@@ -141,14 +149,16 @@ class SimulatedAgent(BaseAgent):
         return windows
 
     def read_log(self):
-
+        """Read the old (eiblog.txt) formatted log."""
         with open(self.log_source) as fp:
-            # jump to the start
-            self._seek_start(fp)
-            count: int = 0
 
+            count: int = 0
             for row in csv.reader(fp, delimiter='\t'):
                 timestamp = self._parse_csv_date(' '.join(row[0:2]))
+
+                # seek the start position
+                if self.start and timestamp < self.start:
+                    continue
 
                 if self.limit and count > self.limit:
                     # quit on limit
@@ -161,23 +171,35 @@ class SimulatedAgent(BaseAgent):
                     count += 1
                     yield telegram
 
+    def read_new_log(self):
+        """Read the new generated log."""
+        with open(self.log_source) as fp:
+
+            count: int = 0
+            for row in csv.reader(fp, delimiter=';', quotechar='"'):
+                timestamp = self._parse_new_csv_date(row[0])
+
+                # seek the start position
+                if self.start and timestamp < self.start:
+                    continue
+
+                if self.limit and count > self.limit:
+                    # quit on limit
+                    break
+                if self.end and timestamp >= self.end:
+                    # quit on end
+                    break
+                else:
+                    telegram = knx.parse_knx_telegram(binascii.unhexlify(row[1][2:-1]), timestamp)
+                    count += 1
+                    yield telegram
+
     def _parse_csv_date(self, date):
         parsed = datetime.strptime(date, '%H:%M:%S %Y-%m-%d')
         parsed.replace(tzinfo=timezone.utc)
         return parsed
 
-    def _seek_start(self, fp) -> bool:
-        """Tries to seek the start datetime in the log
-
-        Returns True, if it was found, otherwise False
-        """
-
-        if not self.start:
-            return False
-
-        for row in csv.reader(fp, delimiter='\t'):
-            timestamp = self._parse_csv_date(' '.join(row[0:2]))
-            if timestamp >= self.start:
-                return True
-
-        return False
+    def _parse_new_csv_date(self, date):
+        parsed = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        parsed.replace(tzinfo=timezone.utc)
+        return parsed

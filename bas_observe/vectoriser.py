@@ -108,11 +108,11 @@ def vectorise_hop_count(hop_count: int):
     # normalise hop count against maximum (7)
     # actually the max is 6, but hop_count set to 7 means to not reduce it
     # aka. unlimited redirect -> not adviced ;)
-    return np.array([hop_count / 7])
+    return np.array([hop_count / 8])
 
 
 def vectorise_hop_count_dict(hop_counts: {}):
-    vect = [0] * 7  # init vector with size 7
+    vect = [0] * 8  # range is 0-7
     size = 0  # size against which we normalise
 
     for hop_count, amount in hop_counts.items():
@@ -120,7 +120,7 @@ def vectorise_hop_count_dict(hop_counts: {}):
         size += amount if amount else 0
 
     if size == 0:
-        return np.zeros(7)
+        return np.zeros(8)
     else:
         return np.array(vect) / size
 

@@ -29,6 +29,7 @@ class CollectorWindow(datamodel.Window):
                     'end': misc.format_influx_datetime(self.end),
                     'length': (self.end - self.start).seconds,
                     'relayed': False,
+                    'count': sum(self.priority.values())  # get the overall number of telegrams from the priority, because it is a value with small range (aka. faster to sum)
                 }
             }
         ]
@@ -170,7 +171,7 @@ class Collector(object):
         windows = OrderedDict()
         result = self.influxdb.query(
             'SELECT "end", "agent" FROM "agent_status" WHERE "project" = \'{project}\' and "relayed" = false GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
-                limit=50,
+                limit=10,
                 project=self.conf.project_name,
             )
         )

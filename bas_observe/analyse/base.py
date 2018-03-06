@@ -93,7 +93,7 @@ class BaseAnalyser(object):
             key = misc.get_uncertain_date_key(windows, window.start)
             if not key:
                 windows[window.start] = [window]
-                self.log.info(f"window key \"{window.start}\" does not exist yet. Gets created")
+                self.log.debug(f"window key \"{window.start}\" does not exist yet. Gets created")
             else:
                 # entry already exists, so add this row as well
                 windows[key].append(window)

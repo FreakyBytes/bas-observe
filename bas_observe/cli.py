@@ -27,7 +27,7 @@ from .analyse.svm import SvmAnalyser
 @click.option('--influxdb', default='http://localhost:8086/bob', help="URL to the InfluxDB server")
 @click.pass_context
 def cli(ctx, log_file, log_level, project, amqp, influxdb):
-    """Bas OBserve (bob)."""
+    """Bas OBserve (BOb)."""
     config.setup_logging(level=log_level, logfile=log_file)
     log = logging.getLogger('CLI')  # re initiate logger
     ctx.obj['LOG'] = log
@@ -162,7 +162,7 @@ def train_entropy(ctx, start, end, model):
     analyser.train(start, end)
 
 
-@train.command('lof')
+@train.command('lof', short_help="trains the base model for the local outlier factor")
 @click.option('--start', help="Start date for the training data")
 @click.option('--end', default=None, help="End date for the training data")
 @click.option('-m', '--model', help="Path to the outputed model")
@@ -174,7 +174,7 @@ def train_lof(ctx, start, end, model):
     analyser.train(start, end)
 
 
-@train.command('svm')
+@train.command('svm', short_help="trains a RBF Support Vector Machine")
 @click.option('--start', help="Start date for the training data")
 @click.option('--end', default=None, help="End date for the training data")
 @click.option('-m', '--model', help="Path to the outputed model")

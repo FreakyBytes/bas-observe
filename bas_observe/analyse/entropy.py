@@ -25,31 +25,40 @@ class EntropyAnalyser(BaseAnalyser):
         window_dict = self.get_windows(start, end)
         for windows in window_dict.values():
             for window in windows:
-                agent_model = self.model.get(window.agent,
-                                             {'buckets': [None] * self.NUM_TIME_BUCKETS * 2,
-                                              'count': np.zeros(self.NUM_TIME_BUCKETS * 2)}
-                                             )
+                if window.agent not in self.model:
+                    # bootstrap the model for this agent
+                    self.log.info(f"Bootstrap model entry for agent \"{window.agent}\"")
+                    self.model[window.agent] = {
+                        'buckets': [None] * self.NUM_TIME_BUCKETS * 2,
+                        'count': np.zeros(self.NUM_TIME_BUCKETS * 2)
+                        }
+
                 vect = vectoriser.vectorise_window(window)
                 bucket1, bucket2 = self._get_bucket_by_time(vect[0])
 
                 # vect is truncated, because in [0] the time is encoded
-                if not agent_model['buckets'][bucket1]:
+                if self.model[window.agent]['buckets'][bucket1] is None:
                     # if this bucket was not yet filled, put the unmodified vector
-                    agent_model['buckets'][bucket1] = vect[1:]
+                    self.model[window.agent]['buckets'][bucket1] = vect[1:]
                 else:
                     # otherwise casually add the feature vector
-                    agent_model['buckets'][bucket1] += vect[1:]
+                    self.model[window.agent]['buckets'][bucket1] += vect[1:]
 
-                if not agent_model['buckets'][bucket2]:
+                if self.model[window.agent]['buckets'][bucket2] is None:
                     # if this bucket was not yet filled, put the unmodified vector
-                    agent_model['buckets'][bucket2] = vect[1:]
+                    self.model[window.agent]['buckets'][bucket2] = vect[1:]
                 else:
                     # otherwise casually add the feature vector
-                    agent_model['buckets'][bucket2] += vect[1:]
+                    self.model[window.agent]['buckets'][bucket2] += vect[1:]
 
                 # increase the counter (to allow calculating the mean later)
-                agent_model['count'][bucket1] += 1
-                agent_model['count'][bucket2] += 1
+                self.model[window.agent]['count'][bucket1] += 1
+                self.model[window.agent]['count'][bucket2] += 1
+
+        for agent in self.model.keys():
+            self.model[agent]['buckets'] = [b.tolist() if b is not None else None for b in self.model[agent]['buckets']]
+            self.log.info(f"Count Vector for Agent {agent}: {self.model[agent]['count']}")
+            self.model[agent]['count'] = self.model[agent]['count'].tolist()
 
         self.save_model()
 
@@ -93,11 +102,11 @@ class EntropyAnalyser(BaseAnalyser):
                 bucket1, bucket2 = self._get_bucket_by_time(vect[0])
 
                 entropy1 = stats.entropy(
-                    agent_model['buckets'][bucket1] / agent_model['count'][bucket1],
+                    np.array(agent_model['buckets'][bucket1]) / agent_model['count'][bucket1],
                     vect[1:]
                 )
                 entropy2 = stats.entropy(
-                    agent_model['buckets'][bucket2] / agent_model['count'][bucket2],
+                    np.array(agent_model['buckets'][bucket2]) / agent_model['count'][bucket2],
                     vect[1:]
                 )
                 # entropy is a sum (interally) anyway, so sum the both - I guess :D
@@ -127,6 +136,6 @@ class EntropyAnalyser(BaseAnalyser):
     def _get_bucket_by_time(self, time: float):
         """Returns the 2 bucket IDs based on the normalised time"""
         bucket1 = math.floor(time * self.NUM_TIME_BUCKETS) % self.NUM_TIME_BUCKETS
-        bucket2 = math.floor((time + (1 / (self.NUM_TIME_BUCKETS * 2))) * self.NUM_TIME_BUCKETS) % self.NUM_TIME_BUCKETS
+        bucket2 = (math.floor((time + (1 / (self.NUM_TIME_BUCKETS * 2))) * self.NUM_TIME_BUCKETS) % self.NUM_TIME_BUCKETS) + self.NUM_TIME_BUCKETS
 
         return bucket1, bucket2

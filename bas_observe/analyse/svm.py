@@ -83,7 +83,7 @@ class SvmAnalyser(BaseSkLearnAnalyser):
             outlier_world = self.get_world_model().predict(vects)
             distance_world = self.get_world_model().decision_function(vects)
 
-            for window, vect, outlier, lof in zip(windows, vects, outlier_world, distance_world):
+            for window, vect, outlier, lof in zip(windows, vects.itertuples(index=False), outlier_world, distance_world):
                 # -1 means outlier / 1 is an inlier
                 # we want to count the amount of outliers, so transform to
                 # 1 means outlier / 0 means inlier
@@ -102,14 +102,15 @@ class SvmAnalyser(BaseSkLearnAnalyser):
                     'fields': {
                         'local': 1 if outlier_local < 0 else 0,
                         'local_inlier': 0 if outlier_local < 0 else 1,
-                        'local_distance': distance_local,
+                        'local_distance': distance_local[0],
                         'world': 1 if outlier < 0 else 0,
                         'world_inlier': 0 if outlier < 0 else 1,
-                        'world_distance': distance_world,
+                        'world_distance': distance_world[0, 0],
                     }
                 })
 
             # write the results to influx
+            self.log.debug(f"Push data to influxdb\n{data}")
             self.get_influxdb().write_points(data)
 
             # ack message

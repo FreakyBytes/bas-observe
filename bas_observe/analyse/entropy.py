@@ -120,12 +120,13 @@ class EntropyAnalyser(BaseAnalyser):
                         'agent': window.agent,
                     },
                     'fields': {
-                        'entropy': entropy,
-                        'entropy1': entropy1,
-                        'entropy2': entropy2,
+                        'entropy': entropy if entropy < math.inf else float(99999.9),
+                        'entropy1': entropy1 if entropy1 < math.inf else float(99999.9),
+                        'entropy2': entropy2 if entropy2 < math.inf else float(99999.9),
                     }
                 })
 
+            self.log.debug(f"Push data to influxdb\n{data}")
             self.get_influxdb().write_points(data)
 
             # ack message

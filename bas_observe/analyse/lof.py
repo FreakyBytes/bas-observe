@@ -89,7 +89,7 @@ class LofAnalyser(BaseSkLearnAnalyser):
 
             # outlier_world = self.get_world_model()._predict(vects)  # fit_predict(vects)
 
-            for window, vect, outlier, lof in zip(windows, vects, outlier_world, lof_world):
+            for window, vect, outlier, lof in zip(windows, vects.itertuples(index=False), outlier_world, lof_world):
                 # -1 means outlier / 1 is an inlier
                 # we want to count the amount of outliers, so transform to
                 # 1 means outlier / 0 means inlier

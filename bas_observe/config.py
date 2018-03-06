@@ -134,12 +134,8 @@ class Config(object):
         return self._name_queue_analyser('lof')
 
     @property
-    def name_exchange_metric(self) -> str:
-        return f'bob-{self.project_name}-exchange-metric'
-
-    @property
-    def name_queue_metric(self) -> str:
-        return f'bob-{self.project_name}-queue-metric'
+    def name_queue_analyser_svm(self) -> str:
+        return self._name_queue_analyser('svm')
 
 
 def setup_logging(level=logging.WARN, logfile=None) -> None:

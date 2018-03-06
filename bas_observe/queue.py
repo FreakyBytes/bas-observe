@@ -30,7 +30,7 @@ def declare_amqp_pipeline(conf: config, channel: pika.channel.Channel, durable: 
     channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_addr.method.queue)
     channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_entropy.method.queue)
     channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_lof.method.queue)
-    channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_svm)
+    channel.queue_bind(exchange=conf.name_exchange_analyser, queue=queue_analyser_svm.method.queue)
 
     # only 1 packet to process at a time
     channel.basic_qos(prefetch_count=1)

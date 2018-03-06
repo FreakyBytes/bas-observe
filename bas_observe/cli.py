@@ -16,6 +16,7 @@ from .manage.collector import Collector
 from .analyse.addr import AddrAnalyser
 from .analyse.lof import LofAnalyser
 from .analyse.entropy import EntropyAnalyser
+from .analyse.svm import SvmAnalyser
 
 
 @click.group()
@@ -121,6 +122,14 @@ def analyse_lof(ctx, model):
     analyser.analyse()
 
 
+@analyse.command('svm', short_help="start SVM observation")
+@click.option('-m', '--model', help="Path to the trained model")
+@click.pass_context
+def analyse_svm(ctx, model):
+    analyser = SvmAnalyser(ctx.obj['CONF'], model)
+    analyser.analyse()
+
+
 # -----------------------------------------------------------------------------
 
 @cli.group(short_help="trains one of the observation modules from InfluxDB")
@@ -141,13 +150,13 @@ def tain_addr(ctx, start, end, model):
     analyser.train(start, end)
 
 
-@train.command('entropy', short_help="determines base line from entropy calculation")
+@train.command('entropy', short_help="determines base line for entropy calculation")
 @click.option('--start', help="Start date for the training data")
 @click.option('--end', default=None, help="End date for the training data")
 @click.option('-m', '--model', help="Path to the outputed model")
 @click.pass_context
 def train_entropy(ctx, start, end, model):
-    analyser = LofAnalyser(ctx.obj['CONF'], model)
+    analyser = EntropyAnalyser(ctx.obj['CONF'], model)
     start = misc.parse_datetime(start)
     end = misc.parse_datetime(end)
     analyser.train(start, end)
@@ -163,6 +172,30 @@ def train_lof(ctx, start, end, model):
     start = misc.parse_datetime(start)
     end = misc.parse_datetime(end)
     analyser.train(start, end)
+
+
+@train.command('svm')
+@click.option('--start', help="Start date for the training data")
+@click.option('--end', default=None, help="End date for the training data")
+@click.option('-m', '--model', help="Path to the outputed model")
+@click.pass_context
+def train_svm(ctx, start, end, model):
+    analyser = SvmAnalyser(ctx.obj['CONF'], model)
+    start = misc.parse_datetime(start)
+    end = misc.parse_datetime(end)
+    analyser.train(start, end)
+
+
+@train.command('arm')
+@click.pass_context
+def train_arm(ctx):
+    pass
+
+
+@train.command('leg')
+@click.pass_context
+def train_leg(ctc):
+    pass
 
 
 def run_cli():

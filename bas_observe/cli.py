@@ -57,9 +57,12 @@ def simulate(ctx, dump, agent, length, limit, start, end):
     log = ctx.obj['LOG']
     agent_filter = {}
     for a in agent:
-        mask = knx.bitmask.Bitmask(a[1], a[2])
+        if a[1] == 0 and a[2] == 0:
+            mask = None  # None mask means, that every traffic matches
+        else:
+            mask = knx.bitmask.Bitmask(a[1], a[2])
         agent_filter[mask] = a[0]
-        log.debug(f"Defined agent {a[0]} with {mask}")
+        log.info(f"Defined agent {a[0]} with {mask}")
 
     agent_set = set(agent_filter.values())
     log.info(f"{len(agent_set)} agents defined: {', '.join(agent_set)}")

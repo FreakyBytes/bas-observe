@@ -123,9 +123,8 @@ class SimulatedAgent(BaseAgent):
                 next_window = telegram.timestamp + self.window_length
 
             for mask, agent in self.agent_filter.items():
-                if mask == int(telegram.src):
-                    windows[agent].process_telegram(telegram)
-                if mask == int(telegram.dest):
+                if mask is None or mask == int(telegram.src) or mask == int(telegram.dest):
+                    # when mask is None, every traffic matches
                     windows[agent].process_telegram(telegram)
 
     def submit_windows(self, windows, end: datetime):

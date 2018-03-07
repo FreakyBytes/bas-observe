@@ -102,6 +102,7 @@ class Collector(object):
 
         # run the loop
         try:
+            self.log.info(f"Relaying windows is {'off' if self.relay is False else 'on'}")
             self.log.info("Start waiting for messages")
             self.setup_relay_timeout()
             channel.start_consuming()
@@ -115,7 +116,7 @@ class Collector(object):
         sets up the timeout for checking, if windows can be relayed to the analysers
         e.g. ansynchronously executes `self.relay_messages()`
         """
-        if not self.relay:
+        if self.relay is False:
             # relaying was deactivated
             return
 
@@ -147,9 +148,11 @@ class Collector(object):
         Also relays incomplete windows after conf.window_wait_timeout is exceeded
         """
         try:
+            self.log.info("Query for unrelayed windows")
             # get the unrelayed windows
             windows = self._get_unrelayed_windows()
 
+            self.log.info(f"Found {len(windows)} unrelayed windows")
             # iterate over the windows
             for time, entries in windows.items():
                 # get a list of all agents in this windows

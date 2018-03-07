@@ -35,7 +35,7 @@ class SvmAnalyser(BaseSkLearnAnalyser):
                 agent_X[window.agent] = agent_X.get(window.agent, pd.DataFrame()).append(vect)
 
         self.log.info(f"len window_dict {len(window_dict)}")
-        
+
         # train all the models!
         self.get_world_model().fit(sys_X)
         for agent, X in agent_X.items():
@@ -116,6 +116,14 @@ class SvmAnalyser(BaseSkLearnAnalyser):
             self.get_influxdb().write_points(data)
 
             # ack message
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+        except json.decoder.JSONDecodeError as e:
+            tmp_file = f"json_body_dump_{datetime.now()}.json"
+            with open(tmp_file, 'wb') as fp:
+                fp.write(body)
+
+            self.log.exception(f"Could not parse json message. Message dump is stored at '{tmp_file}'")
+            # ack message -> do not do this kids!
             channel.basic_ack(delivery_tag=method.delivery_tag)
         finally:
             pass

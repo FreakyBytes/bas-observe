@@ -123,7 +123,7 @@ class SimulatedAgent(BaseAgent):
         for telegram in log:
             if next_window and telegram.timestamp >= next_window:
                 self.submit_windows(windows, next_window)
-                sleep(0.01)
+                sleep(0.5)
                 windows = None
 
             if not windows:

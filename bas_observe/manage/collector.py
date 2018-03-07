@@ -2,6 +2,7 @@ import logging
 import json
 from datetime import datetime
 from collections import OrderedDict
+from multiprocessing.pool import ThreadPool
 
 from ..config import Config
 from .. import datamodel, misc
@@ -153,6 +154,7 @@ class Collector(object):
             windows = self._get_unrelayed_windows()
 
             self.log.info(f"Found {len(windows)} unrelayed windows")
+            cmds = []
             # iterate over the windows
             for time, entries in windows.items():
                 # get a list of all agents in this windows
@@ -162,11 +164,21 @@ class Collector(object):
 
                 if len(missing_agents) == 0:
                     # all agents are present for this window -> relay it
-                    self._relay_window(time, entries)
+                    # self._relay_window(time, entries)
+                    cmds.append((self, time, entries))
                 elif abs(datetime.now() - time).seconds > self.conf.window_wait_timeout:
                     # maximum waiting time exceeded -> relay window anayway
                     self.log.warn(f"Window aroung {time} still missing agent {', '.join(missing_agents)}, but exceeded {self.conf.window_wait_timeout}s. Relaying it anyway.")
-                    self._relay_window(time, entries)
+                    # self._relay_window(time, entries)
+                    cmds.append((self, time, entries))
+
+            with ThreadPool(self.conf.pool_size) as pool:
+                self.log.info(f"Submit {len(cmds)} relay-jobs to multiprocessing pool of size {self.conf.pool_size}")
+                pool.map(
+                    lambda c: c[0]._relay_window(c[1], c[2]),
+                    cmds
+                )
+            self.log.info("multiprocessing pool closed")
 
         finally:
             # whatever happens call this method again
@@ -179,7 +191,7 @@ class Collector(object):
         windows = OrderedDict()
         result = self.influxdb.query(
             'SELECT "end", "agent" FROM "agent_status" WHERE "project" = \'{project}\' and "relayed" = false GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
-                limit=100,
+                limit=8,
                 project=self.conf.project_name,
             )
         )

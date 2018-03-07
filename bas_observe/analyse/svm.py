@@ -34,6 +34,8 @@ class SvmAnalyser(BaseSkLearnAnalyser):
                 sys_X = sys_X.append(vect)
                 agent_X[window.agent] = agent_X.get(window.agent, pd.DataFrame()).append(vect)
 
+        self.log.info(f"len window_dict {len(window_dict)}")
+        
         # train all the models!
         self.get_world_model().fit(sys_X)
         for agent, X in agent_X.items():

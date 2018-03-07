@@ -171,7 +171,7 @@ class Collector(object):
         windows = OrderedDict()
         result = self.influxdb.query(
             'SELECT "end", "agent" FROM "agent_status" WHERE "project" = \'{project}\' and "relayed" = false GROUP BY "agent" ORDER BY time DESC LIMIT {limit}'.format(
-                limit=10,
+                limit=100,
                 project=self.conf.project_name,
             )
         )
@@ -263,3 +263,4 @@ class Collector(object):
             })
 
         self.get_influxdb().write_points(influxdb_data)
+        self.log.info(f"relayed {len(influxdb_data)} windows.")

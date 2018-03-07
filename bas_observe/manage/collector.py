@@ -56,7 +56,7 @@ class CollectorWindow(datamodel.Window):
 class Collector(object):
     LOGGER_NAME = 'COLLECTOR'
 
-    def __init__(self, conf: Config, agent_set: set):
+    def __init__(self, conf: Config, agent_set: set, relay: bool=True):
         """Inits the collector, which is responsible of aggregating the messages
         from the agents and sending them off to the analysers
 
@@ -70,6 +70,7 @@ class Collector(object):
         self.channel = None
         self.influxdb = None
         self.agent_set = agent_set
+        self.relay = relay
 
         self._init_log()
 
@@ -114,6 +115,10 @@ class Collector(object):
         sets up the timeout for checking, if windows can be relayed to the analysers
         e.g. ansynchronously executes `self.relay_messages()`
         """
+        if not self.relay:
+            # relaying was deactivated
+            return
+
         if not connection:
             connection = self.conf._amqp_connection
 

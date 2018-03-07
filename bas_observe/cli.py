@@ -84,13 +84,14 @@ def simulate(ctx, dump, dump_format, agent, length, limit, start, end):
 @cli.command('collector', short_help="collects agent windows to InfluxDB and forwards them to the analysers")
 @click.option('-a', '--agent', nargs=1, type=str, multiple=True,
               help="defines the list of agents by name")
+@click.option('--relay/--no-relay', default=False)
 @click.pass_context
-def log(ctx, agent):
+def log(ctx, agent, relay):
     log = ctx.obj['LOG']
     agent = set(agent)
     log.info(f"{len(agent)} agents defined: {', '.join(agent)}")
     log.info("Starting Collector")
-    collector = Collector(ctx.obj['CONF'], agent)
+    collector = Collector(ctx.obj['CONF'], agent, relay=relay)
     collector.run()
 
 
